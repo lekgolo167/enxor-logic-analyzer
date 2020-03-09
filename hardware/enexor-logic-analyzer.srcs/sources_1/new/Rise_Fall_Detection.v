@@ -41,17 +41,17 @@ module Rise_Fall_Detection(
     assign ne = ~sig_in & sig_dly;
     
     always @(posedge clk, negedge rst) begin
-        if (enable) begin
+        if (!rst) begin
+            trigger_event <= 0;
+        end
+        else if (enable) begin
             if (trigger_type) begin
                 trigger_event <= pe;
             end
             else begin
                 trigger_event <= ne;
             end
-        end
-        else if (!rst) begin
-            trigger_event <= 0;
-        end
+        end 
         else begin
             trigger_event <= 0;
         end
