@@ -22,7 +22,7 @@
 
 module Trigger_Controller(
     input [7:0] data_in,
-    input channel_select,
+    input [2:0] channel_select,
     input trigger_type,
     input enable,
     input rst,
@@ -32,7 +32,7 @@ module Trigger_Controller(
     output event_pulse,
     output [7:0] data_out
     );
-
+    
     Event_Detector ED (
         .clk(clk),
         .data_in(data_in),
@@ -45,8 +45,8 @@ module Trigger_Controller(
         .clk(clk),
         .trigger_type(trigger_type),
         .enable(enable),
-        .sig_in(),
-        .trigger_event()
+        .sig_in(data_in[channel_select]),
+        .trigger_event(triggered)
     );
     
 endmodule

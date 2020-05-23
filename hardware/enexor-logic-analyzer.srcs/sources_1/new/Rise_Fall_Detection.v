@@ -44,7 +44,7 @@ module Rise_Fall_Detection(
         if (!rst) begin
             trigger_event <= 0;
         end
-        else if (enable) begin
+        else if (enable & !trigger_event) begin
             if (trigger_type) begin
                 trigger_event <= pe;
             end
@@ -52,9 +52,6 @@ module Rise_Fall_Detection(
                 trigger_event <= ne;
             end
         end 
-        else begin
-            trigger_event <= 0;
-        end
     end
     
 endmodule

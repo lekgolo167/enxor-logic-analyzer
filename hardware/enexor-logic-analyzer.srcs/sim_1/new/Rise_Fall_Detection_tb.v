@@ -51,6 +51,10 @@ module Rise_Fall_Detection_tb;
     
     always @(posedge clk) begin
         count <= count + 1;
+        if(count % 25 == 0) begin
+            rst <= 0;
+            #16 rst <= 1;
+        end
         if(count == 31)
             #64 trig_type = ~trig_type;
         else if(count == 63)
