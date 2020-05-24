@@ -20,38 +20,39 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Rise_Fall_Detection(
-    input clk,
-    input rst,
-    input sig_in,
-    input trigger_type,
-    input enable,
-    output reg trigger_event
+module Rise_Fall_Detection (
+    input i_sys_clk,
+    input i_rst,
+    input i_sig,
+    input i_trigger_type,
+    input i_enable,
+    output o_trigger_pulse,
+    output o_triggered_state
     );
     
-    reg sig_dly;
-    wire pe, ne;
+    reg sig_dly, r_trigger_event;
+    wire pe, ne, w_trigger_event;
     
-    always @(posedge clk) begin
-        sig_dly <= sig_in;
+    assign o_trigger_pulse = ((pe & i_trigger_type) | (ne & ~i_trigger_type)) & i_enable;
+    assign o_triggered_state = o_trigger_pulse | r_trigger_event;
+    
+    always @(posedge i_sys_clk) begin
+            sig_dly <= i_sig;
+            
     end
+    
     // Posedge detection
-    assign pe = sig_in & ~sig_dly;
+    assign pe = i_sig & ~sig_dly;
     // Negedge detection
-    assign ne = ~sig_in & sig_dly;
+    assign ne = ~i_sig & sig_dly;
     
-    always @(posedge clk, negedge rst) begin
-        if (!rst) begin
-            trigger_event <= 0;
+    always @(posedge i_sys_clk, negedge i_rst) begin
+        if (!i_rst) begin
+            r_trigger_event <= 0;
         end
-        else if (enable & !trigger_event) begin
-            if (trigger_type) begin
-                trigger_event <= pe;
-            end
-            else begin
-                trigger_event <= ne;
-            end
+        else if (i_enable & o_trigger_pulse) begin
+                r_trigger_event <= 1;
         end 
-    end
+    end // End always
     
 endmodule

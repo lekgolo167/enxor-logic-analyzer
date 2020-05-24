@@ -21,9 +21,24 @@
 
 
 module Clock_Divider(
-    input m_clk,
-    input rst,
-    input [7:0] scaler,
-    output incr
+    input i_sys_clk,
+    input i_rstn,
+    input [16:0] i_scaler, // CLK / scalar / 2 = sample rate
+    output reg o_sample_clk_posedge
     );
+    
+    reg [16:0] r_count;
+    
+    always @(posedge i_sys_clk) begin
+        r_count <= r_count + 1;
+        if (r_count == i_scaler) begin
+            r_count <= 0;
+            o_sample_clk_posedge <= 1;
+        end
+        else begin
+            o_sample_clk_posedge <= 0;
+        end
+    end // End always
+    
+    
 endmodule

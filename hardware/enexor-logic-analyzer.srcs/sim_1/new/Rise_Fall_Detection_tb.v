@@ -27,12 +27,12 @@ module Rise_Fall_Detection_tb;
     reg [5:0] count;
     
     Rise_Fall_Detection RFD(
-        .clk(clk),
-        .rst(rst),
-        .sig_in(count[2]),
-        .trigger_type(trig_type),
-        .enable(enable),
-        .trigger_event(trig_out)
+        .i_sys_clk(clk),
+        .i_rst(rst),
+        .i_sig(count[2]),
+        .i_trigger_type(trig_type),
+        .i_enable(enable),
+        .o_trigger_event(trig_out)
         );
         
     always

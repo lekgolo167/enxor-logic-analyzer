@@ -20,9 +20,15 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Pulse_Sync(
-    input [7:0] channels_in,
-    input clk,
-    output [7:0] channels_out
+module Pulse_Sync #(parameter DATA_WIDTH = 8)(
+    input i_sys_clk,
+    input [DATA_WIDTH-1:0] i_async,
+    output reg [DATA_WIDTH-1:0] o_sync
     );
+    
+    
+    always @(posedge i_sys_clk) begin
+        o_sync <= i_async;
+    end // End always
+    
 endmodule

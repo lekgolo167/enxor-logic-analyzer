@@ -18,39 +18,51 @@
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
-
+parameter DATA_WIDTH = 8;
 
 module Logic_Analyzer_Top(
-    input channels [7:0],
-    input m_clk,
-    input rx,
-    output triggered_led,
-    output tx
+    input i_sys_clk,
+    input [DATA_WIDTH:0] i_raw_sig,
+    input i_rx,
+    output o_triggered_led,
+    output o_tx
 );
-
-Pulse_Sync PS (
-
-);
-
-Clock_Divider CD (
-
-);
-
-Timestamp_Counter TSC (
-
-);
-
-Trigger_Controller TC (
-    .data_in(),
-    .channel_select(),
-    .trigger_type(),
-    .enable(),
-    .rst(),
-    .clk(),
-    .slow_clk_posedge(),
-    .triggered(),
-    .event_pulse(),
-    .data_out()
+    
+    wire [DATA_WIDTH-1:0] w_channels;
+    
+    Pulse_Sync #(.DATA_WIDTH(DATA_WIDTH))PS (
+        .i_sys_clk(i_sys_clk),
+        .i_async(i_raw_sig),
+        .o_sync(w_channels)
     );
+    
+    Clock_Divider CD (
+        .i_sys_clk(i_sys_clk),
+        .i_rstn(),
+        .i_scalar(),
+        .o_sample_clk_posedge()
+    );
+    
+    Timestamp_Counter TSC (
+        .i_sys_clk(),
+        .i_rstn(),
+        .i_incr(),
+        .o_rollover(),
+        .o_time()    
+    );
+    
+    Trigger_Controller #(.DATA_WIDTH(DATA_WIDTH)) TC (
+        .i_sys_clk(i_sys_clk),
+        .i_rstn(),
+        .i_data(w_channels),
+        .i_channel_select(),
+        .i_trigger_type(),
+        .i_enable(),
+        .i_sample_clk_posedge(),
+        .o_trigger_pulse(),
+        .o_triggered_state(),
+        .o_event_pulse(),
+        .o_data()
+        );
     
 endmodule

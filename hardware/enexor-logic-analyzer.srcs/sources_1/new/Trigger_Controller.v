@@ -20,33 +20,34 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Trigger_Controller(
-    input [7:0] data_in,
-    input [2:0] channel_select,
-    input trigger_type,
-    input enable,
-    input rst,
-    input clk,
-    input slow_clk_posedge,
-    output triggered,
-    output event_pulse,
-    output [7:0] data_out
+module Trigger_Controller #(parameter DATA_WIDTH = 8)(
+    input i_sys_clk,
+    input i_rstn,
+    input [DATA_WIDTH-1:0] i_data,
+    input [2:0] i_channel_select,
+    input i_trigger_type,
+    input i_enable,
+    input i_sample_clk_posedge,
+    output o_trigger_pulse,
+    output o_triggered_state,
+    output o_event_pulse
     );
     
     Event_Detector ED (
-        .clk(clk),
-        .data_in(data_in),
-        .shift(slow_clk_posedge),
-        .event_pulse(),
-        .data_out()
+        .i_sys_clk(i_sys_clk),
+        .i_data(i_data),
+        .i_shift(i_sample_clk_posedge),
+        .o_event_pulse(o_event_pulse)
     );
     
     Rise_Fall_Detection RFD (
-        .clk(clk),
-        .trigger_type(trigger_type),
-        .enable(enable),
-        .sig_in(data_in[channel_select]),
-        .trigger_event(triggered)
+        .i_sys_clk(i_sys_clk),
+        .i_rst(i_rstn),
+        .i_sig(i_data[i_channel_select]),
+        .i_trigger_type(i_trigger_type),
+        .i_enable(i_enable),
+        .o_trigger_pulse(o_trigger_pulse),
+        .o_triggered_state(o_triggered_state)
     );
     
 endmodule
