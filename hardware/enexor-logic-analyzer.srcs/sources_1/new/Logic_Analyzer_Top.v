@@ -29,6 +29,7 @@ module Logic_Analyzer_Top(
 );
     
     wire [DATA_WIDTH-1:0] w_channels;
+    wire w_sample_clk_posedge;
     
     Pulse_Sync #(.DATA_WIDTH(DATA_WIDTH))PS (
         .i_sys_clk(i_sys_clk),
@@ -40,13 +41,13 @@ module Logic_Analyzer_Top(
         .i_sys_clk(i_sys_clk),
         .i_rstn(),
         .i_scalar(),
-        .o_sample_clk_posedge()
+        .o_sample_clk_posedge(w_sample_clk_posedge)
     );
     
     Timestamp_Counter TSC (
-        .i_sys_clk(),
+        .i_sys_clk(i_sys_clk),
         .i_rstn(),
-        .i_incr(),
+        .i_incr(w_sample_clk_posedge),
         .o_rollover(),
         .o_time()    
     );
@@ -58,11 +59,24 @@ module Logic_Analyzer_Top(
         .i_channel_select(),
         .i_trigger_type(),
         .i_enable(),
-        .i_sample_clk_posedge(),
+        .i_sample_clk_posedge(w_sample_clk_posedge),
         .o_trigger_pulse(),
         .o_triggered_state(),
         .o_event_pulse(),
         .o_data()
         );
+        
+    Data_Buffers DBS (
+        .i_sys_clk(),
+        .i_rstn(),
+        .i_triggered(),
+        .i_data(),
+        .i_pre_trig_buff(),
+        .i_post_trig_buff(),
+        .i_r_addr(),
+        .i_r_enable(),
+        .o_r_data(),
+        .o_done()
+    );
     
 endmodule
