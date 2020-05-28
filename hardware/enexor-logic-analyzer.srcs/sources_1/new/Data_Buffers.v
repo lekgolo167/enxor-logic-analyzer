@@ -20,14 +20,15 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Data_Buffer #(PACKET_WIDTH = 16, PRE_DEPTH = 256, POST_DEPTH = 1024)(
+module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
     input i_sys_clk,
     input i_rstn,
     input i_enable,
     input i_triggered_state,
     input i_wr_en,
+    input i_rd_en,
     input [PACKET_WIDTH-1:0] i_data,
-    output o_done,
+    output reg o_done,
     output [PACKET_WIDTH-1:0] o_data
 );
     localparam DEPTH = (PRE_DEPTH + POST_DEPTH);
@@ -41,7 +42,8 @@ module Data_Buffer #(PACKET_WIDTH = 16, PRE_DEPTH = 256, POST_DEPTH = 1024)(
     localparam s_READ_POST = 3'b101;
 
     reg [2:0] r_state;
-    reg [ADDR_WIDTH-1:0] r_wr_adr, r_pre_last_adr, r_rd_adr;
+    reg [PRE_DEPTH-1:0] r_pre_last_adr;
+    reg [ADDR_WIDTH-1:0] r_wr_adr, r_rd_adr;
         
     always @(posedge i_sys_clk or negedge i_rstn) begin
         if(!i_rstn) begin
@@ -62,8 +64,9 @@ module Data_Buffer #(PACKET_WIDTH = 16, PRE_DEPTH = 256, POST_DEPTH = 1024)(
                     begin
                         if(i_triggered_state) begin
                             r_state <= s_POST_CAPTURE;
-                            r_pre_last_adr <= r_wr_adr;
-                            r_rd_adr <= r_wr_adr + 1;
+                            r_pre_last_adr <= r_wr_adr + 1;
+                            r_wr_adr <= PRE_DEPTH;
+                        end
                         else if(i_wr_en) begin
                             r_wr_adr <= r_wr_adr + 1;
                         end
@@ -71,7 +74,7 @@ module Data_Buffer #(PACKET_WIDTH = 16, PRE_DEPTH = 256, POST_DEPTH = 1024)(
                 
                 s_POST_CAPTURE :
                     begin
-                        if(r_wr_adr == (DEPTH - 1)) begin
+                        if(r_wr_adr == (DEPTH - 1)) begin // maybe r_wr == 0 and then i_wr_en & ~done
                             o_done <= 1;
                             r_state <= s_WAIT;
                         end
@@ -83,23 +86,34 @@ module Data_Buffer #(PACKET_WIDTH = 16, PRE_DEPTH = 256, POST_DEPTH = 1024)(
                 s_WAIT:
                     begin
                         if(i_rd_en) begin
+                            r_rd_adr <= r_pre_last_adr + 1;
                             r_state <= s_READ_PRE;
                         end
                     end
 
                 s_READ_PRE:
                     begin
-                        if(r_rd_adr == r_pre_last_adr) begin
-
+                        if(r_rd_adr == PRE_DEPTH) begin
+                            r_rd_adr <= 0;
                         end
-                        else if begin
-
+                        else if (i_rd_en) begin
+                            r_rd_adr <= r_rd_adr + 1;
+                        end
+                        if(r_rd_adr == r_pre_last_adr) begin
+                            r_state <= s_READ_POST;
+                            r_rd_adr <= PRE_DEPTH;
                         end
                     end
 
                 s_READ_POST:
                     begin
-
+                        if(r_rd_adr == (POST_DEPTH-1)) begin
+                            r_state <= s_IDLE;
+                            o_done <= 1;
+                        end
+                        else if (i_rd_en) begin
+                            r_rd_adr <= r_rd_adr + 1;
+                        end
                     end
 
                 default :
@@ -112,9 +126,9 @@ module Data_Buffer #(PACKET_WIDTH = 16, PRE_DEPTH = 256, POST_DEPTH = 1024)(
     
     sram #(.ADDR_WIDTH(ADDR_WIDTH), .DATA_WIDTH(PACKET_WIDTH), .DEPTH(DEPTH)) sram_0 (
         .i_sys_clk(i_sys_clk),
-        .i_wr_en(w_wr_en),
+        .i_wr_en(i_wr_en),
         .i_wr_adr(r_wr_adr),
-        .i_rd_adr(i_rd_adr),
+        .i_rd_adr(r_rd_adr),
         .i_data(i_data),
         .o_data(o_data)
     );

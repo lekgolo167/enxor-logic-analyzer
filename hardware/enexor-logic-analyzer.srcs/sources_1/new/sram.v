@@ -22,8 +22,8 @@
 
 module sram #(parameter ADDR_WIDTH = 8, DATA_WIDTH = 8, DEPTH = 256)(
     input i_sys_clk,
-    input [ADDR_WIDTH:0] i_wr_adr,
-    input [ADDR_WIDTH:0] i_rd_adr,
+    input [ADDR_WIDTH-1:0] i_wr_adr,
+    input [ADDR_WIDTH-1:0] i_rd_adr,
     input i_wr_en,
     input [DATA_WIDTH-1:0] i_data,
     output reg [DATA_WIDTH-1:0] o_data
