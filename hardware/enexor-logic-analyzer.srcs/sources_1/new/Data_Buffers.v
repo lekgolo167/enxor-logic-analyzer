@@ -42,12 +42,15 @@ module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
     localparam s_READ_POST = 3'b101;
 
     reg [2:0] r_state;
-    reg [PRE_DEPTH-1:0] r_pre_last_adr;
+    reg [$clog2(PRE_DEPTH)-1:0] r_pre_last_adr, r_pre_adr;
     reg [ADDR_WIDTH-1:0] r_wr_adr, r_rd_adr;
         
     always @(posedge i_sys_clk or negedge i_rstn) begin
         if(!i_rstn) begin
             r_wr_adr <= 0;
+            r_pre_adr <= 0;
+            r_rd_adr <= 0;
+            r_pre_last_adr <= 0;
             r_state <= s_IDLE;
         end
         else begin
@@ -64,11 +67,14 @@ module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
                     begin
                         if(i_triggered_state) begin
                             r_state <= s_POST_CAPTURE;
-                            r_pre_last_adr <= r_wr_adr + 1;
+                            r_pre_last_adr <= r_wr_adr;
                             r_wr_adr <= PRE_DEPTH;
                         end
-                        else if(i_wr_en) begin
-                            r_wr_adr <= r_wr_adr + 1;
+                        else begin
+                            if(i_wr_en) begin
+                                r_pre_adr <= r_pre_adr + 1;
+                            end
+                            r_wr_adr <= r_pre_adr;
                         end
                     end
                 
@@ -86,27 +92,32 @@ module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
                 s_WAIT:
                     begin
                         if(i_rd_en) begin
-                            r_rd_adr <= r_pre_last_adr + 1;
+                            o_done <= 0;
+                            r_pre_adr <= r_pre_last_adr + 1;
                             r_state <= s_READ_PRE;
                         end
                     end
 
                 s_READ_PRE:
                     begin
-                        if(r_rd_adr == PRE_DEPTH) begin
-                            r_rd_adr <= 0;
-                        end
-                        else if (i_rd_en) begin
-                            r_rd_adr <= r_rd_adr + 1;
-                        end
-                        if(r_rd_adr == r_pre_last_adr) begin
+                        if(r_pre_adr == r_pre_last_adr) begin
+                            o_done <= 1;
                             r_state <= s_READ_POST;
                             r_rd_adr <= PRE_DEPTH;
+                        end
+                        else begin
+                            if (i_rd_en) begin
+                                r_pre_adr <= r_pre_adr + 1;
+                            end
+                            else begin
+                                r_rd_adr <= r_pre_adr;
+                            end
                         end
                     end
 
                 s_READ_POST:
                     begin
+                        o_done <= 0;
                         if(r_rd_adr == (POST_DEPTH-1)) begin
                             r_state <= s_IDLE;
                             o_done <= 1;

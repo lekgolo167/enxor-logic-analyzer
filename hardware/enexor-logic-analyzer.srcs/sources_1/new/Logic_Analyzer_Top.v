@@ -81,4 +81,16 @@ module Logic_Analyzer_Top(
         .o_done()
     );
     
+    uart #(.CLKS_PER_BIT(868)) USB (
+        .i_sys_clk(),
+        .i_Rx_Serial(),
+        .i_Tx_DV(),
+        .i_Tx_Byte(),
+        .o_Tx_Serial(),
+        .o_Rx_DV(),
+        .o_Rx_Byte(),
+        .o_Tx_Active(),
+        .o_Tx_Done()
+    );
+    
 endmodule

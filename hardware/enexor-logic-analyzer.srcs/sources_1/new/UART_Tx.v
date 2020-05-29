@@ -3,10 +3,8 @@
 // Example: 10 MHz Clock, 115200 baud UART
 // (10000000)/(115200) = 87
   
-module uart_tx 
-  #(parameter CLKS_PER_BIT)
-  (
-   input       i_Clock,
+module uart_tx #(parameter CLKS_PER_BIT = 87) (
+   input       i_sys_clk,
    input       i_Tx_DV,
    input [7:0] i_Tx_Byte, 
    output      o_Tx_Active,
@@ -27,7 +25,7 @@ module uart_tx
   reg          r_Tx_Done     = 0;
   reg          r_Tx_Active   = 0;
      
-  always @(posedge i_Clock)
+  always @(posedge i_sys_clk)
     begin
        
       case (r_SM_Main)
