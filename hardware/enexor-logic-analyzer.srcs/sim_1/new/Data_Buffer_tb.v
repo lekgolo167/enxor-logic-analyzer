@@ -22,21 +22,55 @@
 
 module Data_Buffer_tb;
 
-    reg clk, rst, enable, triggered, rd_en, events, rollover;
-    reg [7:0] timer, channels, last;
+    reg clk, rst, enable, rd_en;
+    wire [7:0] w_time, w_channels;
     reg [11:0] count;
     
-    wire done;
+    wire done, w_sample_clk_posedge, w_rollover, w_trig_pulse, w_triggered_state, w_event;
     wire [15:0] data;
     
+    Pulse_Sync #(.DATA_WIDTH(8))PS (
+        .i_sys_clk(clk),
+        .i_async(count[11:4]),
+        .o_sync(w_channels)
+    );
+    
+    Clock_Divider CD (
+        .i_sys_clk(clk),
+        .i_rstn(rst),
+        .i_scaler(1),
+        .o_sample_clk_posedge(w_sample_clk_posedge)
+    );
+    
+    Timestamp_Counter TSC (
+        .i_sys_clk(clk),
+        .i_rstn(rst),
+        .i_incr(w_sample_clk_posedge),
+        .o_rollover(w_rollover),
+        .o_time(w_time)    
+    );
+    
+    Trigger_Controller #(.DATA_WIDTH(8)) TC (
+        .i_sys_clk(clk),
+        .i_rstn(rst),
+        .i_data(w_channels),
+        .i_channel_select(4),
+        .i_trigger_type(1),
+        .i_enable(enable),
+        .i_sample_clk_posedge(w_sample_clk_posedge),
+        .o_trigger_pulse(w_trig_pulse),
+        .o_triggered_state(w_triggered_state),
+        .o_event_pulse(w_event)
+        );
+        
     Data_Buffers #(.PACKET_WIDTH(16), .PRE_DEPTH(4), .POST_DEPTH(12)) DUT (
         .i_sys_clk(clk),
         .i_rstn(rst),
         .i_enable(enable),
-        .i_triggered_state(triggered),
-        .i_wr_en(events | rollover),
+        .i_triggered_state(w_trig_pulse | w_triggered_state),
+        .i_wr_en(w_event | w_rollover),
         .i_rd_en(rd_en),
-        .i_data({timer, channels}),
+        .i_data({w_time, w_channels}),
         .o_done(done),
         .o_data(data)
     );
@@ -46,46 +80,19 @@ module Data_Buffer_tb;
         
     initial begin
         clk = 0;
-        triggered = 0;
         rst = 0;
         enable =0;
-        triggered = 0;
         rd_en = 0;
         count = 0;
-        timer = 0;
-        channels = 0;
-        last = 0;
-        events = 0;
-        rollover = 0;
-        #5 rst = 1;
-        #5 enable = 1;
+        #50 rst = 1;
+        #15 enable = 1;
     end
     
     always @(posedge clk) begin
-        last <= channels;
-        channels <= count[11:4];
         count <= count + 1;
-        if(count == 177) begin
-            triggered <= 1;
-        end
-        
-        if(&timer) begin
-            rollover <= 1;
-        end
-        else begin
-            rollover <= 0;
-        end
-        if(last != channels) begin
-            events <= 1;
-        end
-        else begin
-            events <= 0;
-        end
-        if(events) begin
-            timer <= 0;
-        end
-        else if(clk) begin
-            timer <= timer + 1;
+        if(done) begin
+            enable <= 0;
+            #100 rd_en <= 1;
         end
     end // End always
     
