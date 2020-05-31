@@ -28,26 +28,36 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     input i_trigger_type,
     input i_enable,
     input i_sample_clk_posedge,
-    output o_trigger_pulse,
     output o_triggered_state,
     output o_event_pulse
     );
     
-    Event_Detector ED (
-        .i_sys_clk(i_sys_clk),
-        .i_data(i_data),
-        .i_shift(i_sample_clk_posedge),
-        .o_event_pulse(o_event_pulse)
-    );
+    reg [DATA_WIDTH-1:0] r_last;
+    reg sig_dly, r_trigger_event;
+    wire pe, ne, w_trigger_pulse;
     
-    Rise_Fall_Detection RFD (
-        .i_sys_clk(i_sys_clk),
-        .i_rst(i_rstn),
-        .i_sig(i_data[i_channel_select]),
-        .i_trigger_type(i_trigger_type),
-        .i_enable(i_enable),
-        .o_trigger_pulse(o_trigger_pulse),
-        .o_triggered_state(o_triggered_state)
-    );
+    assign w_trigger_pulse = ((pe & i_trigger_type) | (ne & ~i_trigger_type)) & i_enable;
+    assign o_triggered_state = (o_event_pulse & w_trigger_pulse) | r_trigger_event;
+    assign o_event_pulse = (r_last != i_data)  & i_sample_clk_posedge;
+    
+    always @(posedge i_sys_clk) begin
+        if (i_sample_clk_posedge) begin
+            r_last <= i_data;
+        end
+    end // End always
+    
+    // Posedge detection
+    assign pe = i_data[i_channel_select] & ~r_last[i_channel_select];
+    // Negedge detection
+    assign ne = ~i_data[i_channel_select] & r_last[i_channel_select];
+    
+    always @(posedge i_sys_clk, negedge i_rstn) begin
+        if (!i_rstn) begin
+            r_trigger_event <= 0;
+        end
+        else if (i_enable & w_trigger_pulse & i_sample_clk_posedge) begin
+                r_trigger_event <= 1;
+        end 
+    end // End always
     
 endmodule

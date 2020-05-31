@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 03/06/2020 10:59:58 PM
+// Create Date: 05/30/2020 07:43:54 PM
 // Design Name: 
-// Module Name: Pulse_Sync
+// Module Name: Reset_Sync
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -20,15 +20,22 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Pulse_Sync #(parameter DATA_WIDTH = 8)(
-    input i_sys_clk,
-    input [DATA_WIDTH-1:0] i_async,
-    output reg [DATA_WIDTH-1:0] o_sync
-    );
-    
-    
-    always @(posedge i_sys_clk) begin
-            o_sync <= i_async;
-    end // End always
-    
+module Reset_Sync(
+	input i_sys_clk,
+	input i_rstn,
+	output reg o_rstsync
+);
+	reg R1;
+	
+	always @(posedge i_sys_clk or negedge i_rstn) begin
+		if(!i_rstn) begin
+			R1 <= 0;
+			o_rstsync <= 0;
+		end
+		else begin
+			R1 <= 1;
+			o_rstsync <= R1;
+		end
+	end
+	
 endmodule

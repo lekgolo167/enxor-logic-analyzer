@@ -60,7 +60,7 @@ module Trigger_Controller_tb;
     
     always @(posedge clk) begin
         count <= count + 1;
-        if(count % 3 == 0) begin
+        if(count % 5 == 0) begin
             sample_clk_posedge <= 1;
         end
         else begin

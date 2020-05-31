@@ -26,11 +26,12 @@ module Data_Buffer_tb;
     wire [7:0] w_time, w_channels;
     reg [11:0] count;
     
-    wire done, w_sample_clk_posedge, w_rollover, w_trig_pulse, w_triggered_state, w_event;
+    wire done, w_sample_clk_posedge, w_rollover, w_triggered_state, w_event;
     wire [15:0] data;
     
     Pulse_Sync #(.DATA_WIDTH(8))PS (
         .i_sys_clk(clk),
+        //.i_shift(w_sample_clk_posedge),
         .i_async(count[11:4]),
         .o_sync(w_channels)
     );
@@ -38,7 +39,7 @@ module Data_Buffer_tb;
     Clock_Divider CD (
         .i_sys_clk(clk),
         .i_rstn(rst),
-        .i_scaler(1),
+        .i_scaler(5),
         .o_sample_clk_posedge(w_sample_clk_posedge)
     );
     
@@ -46,6 +47,7 @@ module Data_Buffer_tb;
         .i_sys_clk(clk),
         .i_rstn(rst),
         .i_incr(w_sample_clk_posedge),
+        .i_event(w_event),
         .o_rollover(w_rollover),
         .o_time(w_time)    
     );
@@ -58,7 +60,6 @@ module Data_Buffer_tb;
         .i_trigger_type(1),
         .i_enable(enable),
         .i_sample_clk_posedge(w_sample_clk_posedge),
-        .o_trigger_pulse(w_trig_pulse),
         .o_triggered_state(w_triggered_state),
         .o_event_pulse(w_event)
         );
@@ -67,7 +68,7 @@ module Data_Buffer_tb;
         .i_sys_clk(clk),
         .i_rstn(rst),
         .i_enable(enable),
-        .i_triggered_state(w_trig_pulse | w_triggered_state),
+        .i_triggered_state(w_triggered_state),
         .i_wr_en(w_event | w_rollover),
         .i_rd_en(rd_en),
         .i_data({w_time, w_channels}),
@@ -97,6 +98,6 @@ module Data_Buffer_tb;
     end // End always
     
     initial
-        #1550 $finish;
+        #3000 $finish;
 
 endmodule
