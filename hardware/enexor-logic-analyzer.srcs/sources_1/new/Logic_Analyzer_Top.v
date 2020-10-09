@@ -29,7 +29,8 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
     output o_tx
 );
     
-    wire [DATA_WIDTH-1:0] w_channels, w_time;
+    wire [DATA_WIDTH-1:0] w_channels;
+    wire [7:0] w_time;
     wire w_sample_clk_posedge, w_triggered_state, w_rollover, w_event, w_trig_pulse, w_rstn;
     assign o_triggered_led = w_triggered_state;
     
@@ -79,7 +80,7 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
         .i_enable(),
         .i_triggered_state(w_triggered_state),
         .i_data({w_time, w_channels}),
-        .i_wr_en(w_event | w_rollover),
+        .i_event(w_event | w_rollover),
         .i_rd_en(),
         .o_data(),
         .o_done()

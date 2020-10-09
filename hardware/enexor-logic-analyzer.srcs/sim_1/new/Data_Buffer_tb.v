@@ -22,16 +22,15 @@
 
 module Data_Buffer_tb;
 
-    reg clk, rst, enable, rd_en;
+    reg clk, rst, enable, start_read, r_ack;
     wire [7:0] w_time, w_channels;
     reg [11:0] count;
     
-    wire done, w_sample_clk_posedge, w_rollover, w_triggered_state, w_event;
+    wire buffer_full, w_sample_clk_posedge, w_rollover, w_triggered_state, w_event, finished_read, t_rdy;
     wire [15:0] data;
     
     Pulse_Sync #(.DATA_WIDTH(8))PS (
         .i_sys_clk(clk),
-        //.i_shift(w_sample_clk_posedge),
         .i_async(count[11:4]),
         .o_sync(w_channels)
     );
@@ -69,11 +68,14 @@ module Data_Buffer_tb;
         .i_rstn(rst),
         .i_enable(enable),
         .i_triggered_state(w_triggered_state),
-        .i_wr_en(w_event | w_rollover),
-        .i_rd_en(rd_en),
+        .i_event(w_event | w_rollover),
+        .i_r_ack(r_ack),
+        .i_start_read(start_read),
         .i_data({w_time, w_channels}),
-        .o_done(done),
-        .o_data(data)
+        .o_buffer_full(buffer_full),
+        .o_finished_read(finished_read),
+        .o_data(data),
+        .o_t_rdy(t_rdy)
     );
     
     always
@@ -83,21 +85,34 @@ module Data_Buffer_tb;
         clk = 0;
         rst = 0;
         enable =0;
-        rd_en = 0;
         count = 0;
+        r_ack = 0;
+        start_read = 0;
         #50 rst = 1;
         #15 enable = 1;
     end
     
     always @(posedge clk) begin
-        count <= count + 1;
-        if(done) begin
+        
+        
+        if (finished_read) begin
+            start_read <= 0;
             enable <= 0;
-            #100 rd_en <= 1;
+            #100 $finish;     
+        end
+        else if(buffer_full && !start_read) begin
+            #100 start_read <= 1;
         end
     end // End always
-    
-    initial
-        #3000 $finish;
 
+    always @(posedge clk) begin
+        count <= count + 1;
+        if(t_rdy) begin
+            r_ack <= 1;
+        end
+        else if (r_ack) begin
+            r_ack <= 0;
+        end
+    end
+    
 endmodule

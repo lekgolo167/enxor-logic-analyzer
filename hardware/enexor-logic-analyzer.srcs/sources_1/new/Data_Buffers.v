@@ -25,110 +25,152 @@ module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
     input i_rstn,
     input i_enable,
     input i_triggered_state,
-    input i_wr_en,
-    input i_rd_en,
+    input i_event,
+    input i_r_ack,
+    input i_start_read,// might not need this
     input [PACKET_WIDTH-1:0] i_data,
-    output reg o_done,
-    output [PACKET_WIDTH-1:0] o_data
+    output reg o_buffer_full,
+    output reg o_finished_read,
+    output [PACKET_WIDTH-1:0] o_data,
+    output reg o_t_rdy
 );
     localparam DEPTH = (PRE_DEPTH + POST_DEPTH);
     localparam ADDR_WIDTH = $clog2(DEPTH);
+    localparam PRE_ADDR_WIDTH = $clog2(PRE_DEPTH);
+    localparam s_IDLE = 2'b00;
+    localparam s_PRE_CAPTURE = 2'b01;
+    localparam s_POST_CAPTURE = 2'b10;
+    localparam s_WAIT = 2'b11;
+    localparam s_READ_PRE = 2'b01;
+    localparam s_READ_POST = 2'b10;
 
-    localparam s_IDLE = 3'b00;
-    localparam s_PRE_CAPTURE = 3'b001;
-    localparam s_POST_CAPTURE = 3'b010;
-    localparam s_WAIT = 3'b011;
-    localparam s_READ_PRE = 3'b100;
-    localparam s_READ_POST = 3'b101;
-
-    reg [2:0] r_state;
-    reg [$clog2(PRE_DEPTH)-1:0] r_pre_last_adr;
+    reg r_wr_en;
+    reg [1:0] r_wr_state, r_rd_state, r_prev_state;
+    reg [PRE_ADDR_WIDTH-1:0] r_pre_last_adr;
     reg [ADDR_WIDTH-1:0] r_wr_adr, r_rd_adr;
         
     always @(posedge i_sys_clk or negedge i_rstn) begin
         if(!i_rstn) begin
+            r_wr_en <= 1;
             r_wr_adr <= 0;
-            r_rd_adr <= 0;
+            o_buffer_full <= 0;
             r_pre_last_adr <= 0;
-            r_state <= s_IDLE;
+            r_wr_state <= s_PRE_CAPTURE;
         end
         else begin
-            case(r_state)
-                s_IDLE :
-                    begin
-                        o_done <= 0;
-                        if(i_enable) begin
-                            r_state <= s_PRE_CAPTURE;
-                        end
-                    end
+            case(r_wr_state)
                 
                 s_PRE_CAPTURE :
                     begin
+                        r_wr_en <= 1;
+                        o_buffer_full <= 0;
+                        
                         if(i_triggered_state) begin
-                            r_state <= s_POST_CAPTURE;
+                            r_wr_state <= s_POST_CAPTURE;
                             r_pre_last_adr <= r_wr_adr;
                             r_wr_adr <= PRE_DEPTH;
                         end
                         else begin
-                            if(i_wr_en) begin
-                                //r_pre_adr <= r_pre_adr + 1;
-                                r_wr_adr <= (r_wr_adr + 1)  & 2'b11;
+                            if(i_event) begin
+                                r_wr_adr <= (r_wr_adr + 1)  & {PRE_ADDR_WIDTH{1'b1}};
                             end
-                            
                         end
                     end
                 
                 s_POST_CAPTURE :
                     begin
-                        if(r_wr_adr == (DEPTH - 1)) begin // maybe r_wr == 0 and then i_wr_en & ~done
-                            o_done <= 1;
-                            r_state <= s_WAIT;
+                        if((r_wr_adr == (DEPTH - 1)) & i_event) begin // ANDed with event fills in the last memory slot
+                            o_buffer_full <= 1;
+                            r_wr_en <= 0;
+                            r_wr_state <= s_WAIT;
                         end
-                        else if(i_wr_en) begin
+                        else if(i_event) begin
                             r_wr_adr <= r_wr_adr + 1;
                         end
                     end
 
                 s_WAIT:
                     begin
-                        if(i_rd_en) begin
-                            o_done <= 0;
-                            r_rd_adr <= (r_pre_last_adr + 1) & 2'b11;
-                            r_state <= s_READ_PRE;
+                        if(!i_enable) begin
+                            o_buffer_full <= 0;
+                            r_wr_state <= s_PRE_CAPTURE;
                         end
                     end
+                    
+                default :
+                    r_wr_state <= s_PRE_CAPTURE;
 
+            endcase    
+        end
+    end // End always
+    
+    always @(posedge i_sys_clk or negedge i_rstn) begin
+        if(!i_rstn) begin
+            r_rd_adr <= 0;
+            o_finished_read <= 0;
+            o_t_rdy <= 0;
+            r_rd_state <= s_IDLE;
+            r_prev_state <= s_WAIT;
+        end
+        else begin
+            case(r_rd_state)
+                s_IDLE :
+                    begin
+                        o_finished_read <= 0;
+                        r_rd_adr <= (r_pre_last_adr + 1) & {PRE_ADDR_WIDTH{1'b1}};
+                        o_t_rdy <= 0;
+                        if(i_start_read) begin
+                            o_t_rdy <= 1;
+                            r_rd_state <= s_READ_PRE;
+                        end
+                    end
                 s_READ_PRE:
                     begin
-                        if(r_rd_adr == r_pre_last_adr) begin
-                            o_done <= 1;
-                            r_state <= s_READ_POST;
+                        o_t_rdy <= 1;
+                        
+                        if((r_rd_adr == r_pre_last_adr) & i_r_ack) begin
+                            o_t_rdy <= 0;
+                            r_rd_state <= s_WAIT;
+                            r_prev_state <= s_READ_POST;
                             r_rd_adr <= PRE_DEPTH;
                         end
                         else begin
-                            if (i_rd_en) begin
-                                r_rd_adr <= (r_rd_adr + 1) & 2'b11;
+                            if (i_r_ack) begin
+                                o_t_rdy <= 0;
+                                r_prev_state <= r_rd_state;
+                                r_rd_state <= s_WAIT;
+                                r_rd_adr <= (r_rd_adr + 1) & {PRE_ADDR_WIDTH{1'b1}};
                             end
-//                            else begin
-                                
-                            //end
                         end
                     end
 
                 s_READ_POST:
                     begin
-                        o_done <= 0;
-                        if(r_rd_adr == (DEPTH-1)) begin
-                            r_state <= s_IDLE;
-                            o_done <= 1;
+                        o_t_rdy <= 1;
+                        
+                        if((r_rd_adr == (DEPTH-1)) & i_r_ack) begin // could change to last r_wr_adr in case stop happend will filling buffer
+                            o_t_rdy <= 0;
+                            r_rd_state <= s_WAIT;
+                            r_prev_state <= s_IDLE;
+                            o_finished_read <= 1;
                         end
-                        else if (i_rd_en) begin
+                        else if (i_r_ack) begin
+                            o_t_rdy <= 0;
+                            r_prev_state <= r_rd_state;
+                            r_rd_state <= s_WAIT;
                             r_rd_adr <= r_rd_adr + 1;
                         end
                     end
-
+                    
+                s_WAIT:
+                    begin
+                        if (!i_r_ack) begin
+                            r_rd_state <= r_prev_state;
+                        end
+                    end
+                    
                 default :
-                    r_state <= s_IDLE;
+                    r_rd_state <= s_IDLE;
 
             endcase
             
@@ -137,7 +179,7 @@ module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
     
     sram #(.ADDR_WIDTH(ADDR_WIDTH), .DATA_WIDTH(PACKET_WIDTH), .DEPTH(DEPTH)) sram_0 (
         .i_sys_clk(i_sys_clk),
-        .i_wr_en(i_wr_en),
+        .i_wr_en(r_wr_en & i_event),
         .i_wr_adr(r_wr_adr),
         .i_rd_adr(r_rd_adr),
         .i_data(i_data),
