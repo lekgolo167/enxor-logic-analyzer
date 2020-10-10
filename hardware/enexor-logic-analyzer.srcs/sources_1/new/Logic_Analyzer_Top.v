@@ -30,8 +30,13 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
 );
     
     wire [DATA_WIDTH-1:0] w_channels;
-    wire [7:0] w_time;
-    wire w_sample_clk_posedge, w_triggered_state, w_rollover, w_event, w_trig_pulse, w_rstn;
+    wire [PACKET_WIDTH-1:0] w_data;
+    wire [$clog2(DATA_WIDTH)-1:0] w_channel_select;
+    wire [7:0] w_time, w_tx_byte, w_rx_byte;
+    wire [15:0] w_scaler;
+    wire w_sample_clk_posedge, w_triggered_state, w_rollover, w_event, w_trig_pulse, w_rstn, w_buffer_full, w_finished_read, w_trigger_type;
+    wire w_r_ack, w_enable, w_start_read, w_t_rdy, w_tx_DV, w_rx_DV, w_tx_done, w_tx_active;
+    
     assign o_triggered_led = w_triggered_state;
     
     Reset_Sync (
@@ -49,7 +54,7 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
     Clock_Divider CD (
         .i_sys_clk(i_sys_clk),
         .i_rstn(w_rstn),
-        .i_scaler(),
+        .i_scaler(w_scaler),
         .o_sample_clk_posedge(w_sample_clk_posedge)
     );
     
@@ -66,9 +71,9 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
         .i_sys_clk(i_sys_clk),
         .i_rstn(w_rstn),
         .i_data(w_channels),
-        .i_channel_select(),
-        .i_trigger_type(),
-        .i_enable(),
+        .i_channel_select(w_channel_select),
+        .i_trigger_type(w_trigger_type),
+        .i_enable(w_enable),
         .i_sample_clk_posedge(w_sample_clk_posedge),
         .o_triggered_state(w_triggered_state),
         .o_event_pulse(w_event)
@@ -77,25 +82,48 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
     Data_Buffers #(.PACKET_WIDTH(PACKET_WIDTH), .PRE_DEPTH(PRE_DEPTH), .POST_DEPTH(POST_DEPTH)) DBS(
         .i_sys_clk(i_sys_clk),
         .i_rstn(w_rstn),
-        .i_enable(),
+        .i_enable(w_enable),
         .i_triggered_state(w_triggered_state),
-        .i_data({w_time, w_channels}),
         .i_event(w_event | w_rollover),
-        .i_rd_en(),
-        .o_data(),
-        .o_done()
+        .i_r_ack(w_r_ack),
+        .i_start_read(w_start_read),
+        .i_data({w_time, w_channels}),
+        .o_buffer_full(w_buffer_full),
+        .o_finished_read(w_finished_read),
+        .o_data(w_data),
+        .o_t_rdy(w_t_rdy)
+    );
+    
+    FSM_Controller FSM (
+        .i_sys_clk(i_sys_clk),
+        .i_buffer_full(w_buffer_full),
+        .i_finished_read(w_finished_read),
+        .i_t_rdy(w_t_rdy),
+        .i_rx_DV(w_rx_DV),
+        .i_tx_active(w_tx_active),// might remove this
+        .i_tx_done(w_tx_done),
+        .i_rx_byte(w_rx_byte),
+        .i_data(w_data),
+        .o_scaler(w_scaler),
+        .o_channel_select(w_channel_select),
+        .p_trigger_type(w_trigger_type),
+        .o_enable(w_enable),
+        .o_r_ack(w_r_ack),
+        .o_start_read(w_start_read),
+        .o_tx_DV(w_tx_DV),
+        .o_tx_byte(w_tx_byte)
     );
     
     uart #(.CLKS_PER_BIT(87)) USB (
         .i_sys_clk(i_sys_clk),
         .i_Rx_Serial(i_rx),
-        .i_Tx_DV(),
-        .i_Tx_Byte(),
+        .i_Tx_DV(w_tx_DV),
+        .i_Tx_Byte(w_tx_byte),
         .o_Tx_Serial(o_tx),
-        .o_Rx_DV(),
-        .o_Rx_Byte(),
-        .o_Tx_Active(),
-        .o_Tx_Done()
+        .o_Rx_DV(w_rx_DV),
+        .o_Rx_Byte(w_rx_byte),
+        .o_Tx_Active(w_tx_active),
+        .o_Tx_Done(w_tx_done)
     );
     
 endmodule

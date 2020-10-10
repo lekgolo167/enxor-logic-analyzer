@@ -24,7 +24,7 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     input i_sys_clk,
     input i_rstn,
     input [DATA_WIDTH-1:0] i_data,
-    input [2:0] i_channel_select,
+    input [$clog2(DATA_WIDTH)-1:0] i_channel_select,
     input i_trigger_type,
     input i_enable,
     input i_sample_clk_posedge,

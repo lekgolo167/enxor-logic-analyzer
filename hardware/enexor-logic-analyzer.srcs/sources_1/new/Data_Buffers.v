@@ -148,7 +148,7 @@ module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
                     begin
                         o_t_rdy <= 1;
                         
-                        if((r_rd_adr == (DEPTH-1)) & i_r_ack) begin // could change to last r_wr_adr in case stop happend will filling buffer
+                        if((r_rd_adr == (DEPTH-1)) & i_r_ack) begin // could change to last r_wr_adr in case stop happend while filling buffer
                             o_t_rdy <= 0;
                             r_rd_state <= s_WAIT;
                             r_prev_state <= s_IDLE;
