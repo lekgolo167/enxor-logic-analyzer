@@ -3,9 +3,9 @@
 // Company: 
 // Engineer: 
 // 
-// Create Date: 05/28/2020 06:48:06 PM
+// Create Date: 12/31/2020 01:21:37 AM
 // Design Name: 
-// Module Name: Data_Buffer_tb
+// Module Name: Data_Width_Converter_tb
 // Project Name: 
 // Target Devices: 
 // Tool Versions: 
@@ -20,13 +20,14 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Data_Buffer_tb;
+module Data_Width_Converter_tb;
 
-    reg clk, rst, enable, start_read, r_ack;
-    wire [7:0] w_time, w_channels;
     reg [11:0] count;
+    reg clk, rst, enable, start_read;
+    wire [7:0] w_time, w_channels, tx_byte;
     
-    wire buffer_full, w_sample_clk_posedge, w_rollover, w_triggered_state, w_event, finished_read, post_read, t_rdy;
+    
+    wire w_sample_clk_posedge, w_rollover, w_triggered_state, w_event, finished_read,r_ack, t_rdy, buffer_full, tx_DV, tx_active, tx_serial, tx_done, post_read;
     wire [15:0] data;
     
     Pulse_Sync #(.DATA_WIDTH(8))PS (
@@ -63,7 +64,7 @@ module Data_Buffer_tb;
         .o_event_pulse(w_event)
         );
         
-    Data_Buffers #(.PACKET_WIDTH(16), .PRE_DEPTH(4), .POST_DEPTH(12)) DUT (
+    Data_Buffers #(.PACKET_WIDTH(16), .PRE_DEPTH(4), .POST_DEPTH(12)) DBS (
         .i_sys_clk(clk),
         .i_rstn(rst),
         .i_enable(enable),
@@ -79,6 +80,30 @@ module Data_Buffer_tb;
         .o_t_rdy(t_rdy)
     );
     
+    uart_tx #(.CLKS_PER_BIT(5)) tx (
+        .i_sys_clk(clk),
+        .i_Tx_DV(tx_DV),
+        .i_Tx_Byte(tx_byte),
+        .o_Tx_Active(tx_active),
+        .o_Tx_Serial(tx_serial),
+        .o_Tx_Done(tx_done)
+    );
+    
+    Data_Width_Converter #(.PACKET_WIDTH(16)) DUT (
+        .i_clk(clk),
+        .i_triggered_state(w_triggered_state),
+        .i_post_read(post_read),
+        .i_start_read(start_read),
+        .i_buffer_full(buffer_full),
+        .i_enable(enable),
+        .i_data(data),
+        .i_t_rdy(t_rdy),
+        .i_tx_done(tx_done),
+        .o_r_ack(r_ack),
+        .o_tx_DV(tx_DV),
+        .o_tx_byte(tx_byte)
+    );
+    
     always
         #2 clk = ~clk;
         
@@ -87,17 +112,14 @@ module Data_Buffer_tb;
         rst = 0;
         enable =0;
         count = 0;
-        r_ack = 0;
         start_read = 0;
         #50 rst = 1;
         #15 enable = 1;
     end
     
     always @(posedge clk) begin
-        
-        
+          
         if (finished_read) begin
-            r_ack <= 0;
             #250 start_read <= 0;
             #25 enable <= 0;
             #100 $finish;     
@@ -109,15 +131,6 @@ module Data_Buffer_tb;
 
     always @(posedge clk) begin
         count <= count + 1;
-        if (start_read) begin
-            if(t_rdy) begin
-                r_ack <= 1;
-            end
-            else if (r_ack) begin
-                r_ack <= 0;
-                #300; // Simulate send time through UART
-            end
-        end
     end
     
 endmodule

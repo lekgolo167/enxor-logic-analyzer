@@ -52,12 +52,17 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     assign ne = ~i_data[i_channel_select] & r_last[i_channel_select];
     
     always @(posedge i_sys_clk, negedge i_rstn) begin
-        if (!i_rstn | !i_enable) begin
+        if (!i_rstn) begin
             r_trigger_event <= 0;
         end
-        else if (i_enable & w_trigger_pulse & i_sample_clk_posedge) begin
-            r_trigger_event <= 1;
-        end 
+        else begin
+            if (!i_enable) begin
+                r_trigger_event <= 0;
+            end
+            else if (i_enable & w_trigger_pulse & i_sample_clk_posedge) begin
+                r_trigger_event <= 1;
+            end
+        end
     end // End always
     
 endmodule

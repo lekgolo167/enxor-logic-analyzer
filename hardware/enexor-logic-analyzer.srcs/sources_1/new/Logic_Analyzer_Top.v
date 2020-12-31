@@ -106,7 +106,7 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
         .i_data(w_data),
         .o_scaler(w_scaler),
         .o_channel_select(w_channel_select),
-        .p_trigger_type(w_trigger_type),
+        .o_trigger_type(w_trigger_type),
         .o_enable(w_enable),
         .o_r_ack(w_r_ack),
         .o_start_read(w_start_read),

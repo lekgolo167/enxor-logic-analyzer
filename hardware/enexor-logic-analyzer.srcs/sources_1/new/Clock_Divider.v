@@ -33,13 +33,15 @@ module Clock_Divider(
         if(!i_rstn) begin
             r_count <= 0;
         end
-        else if (r_count == i_scaler) begin
-            r_count <= 0;
-            o_sample_clk_posedge <= 1;
-        end
         else begin
-            r_count <= r_count + 1;
-            o_sample_clk_posedge <= 0;
+            if (r_count == i_scaler) begin
+                r_count <= 0;
+                o_sample_clk_posedge <= 1;
+            end
+            else begin
+                r_count <= r_count + 1;
+                o_sample_clk_posedge <= 0;
+            end
         end
     end // End always
     

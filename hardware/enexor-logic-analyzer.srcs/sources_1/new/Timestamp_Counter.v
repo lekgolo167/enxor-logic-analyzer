@@ -35,12 +35,14 @@ module Timestamp_Counter(
         if(!i_rstn) begin
             o_time <= 1;
         end
-        else if(i_event) begin
-            o_time <= 1;
-        end
-        else if(i_incr) begin
-            o_time <= o_time + 1;
-        end    
+        else begin
+            if(i_event) begin
+                o_time <= 1;
+            end
+            else if(i_incr) begin
+                o_time <= o_time + 1;
+            end 
+        end   
     end // End always    
      
 endmodule

@@ -23,13 +23,14 @@
 module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
     input i_sys_clk,
     input i_rstn,
-    input i_enable,
+    input i_enable, // No longer needed
     input i_triggered_state,
     input i_event,
     input i_r_ack,
-    input i_start_read,// might not need this
+    input i_start_read,
     input [PACKET_WIDTH-1:0] i_data,
-    output reg o_buffer_full,
+    output reg o_post_read,
+    output reg o_buffer_full, // Might be able to change this to an internal register
     output reg o_finished_read,
     output [PACKET_WIDTH-1:0] o_data,
     output reg o_t_rdy
@@ -45,7 +46,7 @@ module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
     localparam s_READ_POST = 2'b10;
 
     reg r_wr_en;
-    reg [1:0] r_wr_state, r_rd_state, r_prev_state;
+    reg [2:0] r_wr_state, r_rd_state, r_prev_state;
     reg [PRE_ADDR_WIDTH-1:0] r_pre_last_adr;
     reg [ADDR_WIDTH-1:0] r_wr_adr, r_rd_adr;
         
@@ -91,12 +92,18 @@ module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
 
                 s_WAIT:
                     begin
-                        if(!i_enable) begin
+                        if(o_finished_read && !i_start_read) begin
                             o_buffer_full <= 0;
-                            r_wr_state <= s_PRE_CAPTURE;
+                            r_wr_adr <= 0;
+                            r_wr_state <= s_IDLE;
                         end
                     end
-                    
+                s_IDLE: 
+                    begin
+                        if(!i_triggered_state) begin
+                            r_wr_state <= s_PRE_CAPTURE;
+                        end
+                    end    
                 default :
                     r_wr_state <= s_PRE_CAPTURE;
 
@@ -111,18 +118,22 @@ module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
             o_t_rdy <= 0;
             r_rd_state <= s_IDLE;
             r_prev_state <= s_WAIT;
+            o_post_read <= 0;
         end
         else begin
             case(r_rd_state)
                 s_IDLE :
                     begin
-                        o_finished_read <= 0;
-                        r_rd_adr <= (r_pre_last_adr + 1) & {PRE_ADDR_WIDTH{1'b1}};
-                        o_t_rdy <= 0;
-                        if(i_start_read) begin
+                        if(!o_buffer_full) begin
+                            o_finished_read <= 0;
+                        end
+                        if(i_start_read && !o_finished_read) begin
                             o_t_rdy <= 1;
                             r_rd_state <= s_READ_PRE;
                         end
+                        r_rd_adr <= (r_pre_last_adr + 1) & {PRE_ADDR_WIDTH{1'b1}}; // Might not neet this ANDed anymorre because r_pre_last_adr will rollover
+                        o_t_rdy <= 0;
+                        o_post_read <= 0;
                     end
                 s_READ_PRE:
                     begin
@@ -147,8 +158,10 @@ module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
                 s_READ_POST:
                     begin
                         o_t_rdy <= 1;
+                        o_post_read <= 1;
                         
-                        if((r_rd_adr == (DEPTH-1)) & i_r_ack) begin // could change to last r_wr_adr in case stop happend while filling buffer
+                        // Use reduction AND here?
+                        if((r_rd_adr == (DEPTH-1)) & i_r_ack) begin
                             o_t_rdy <= 0;
                             r_rd_state <= s_WAIT;
                             r_prev_state <= s_IDLE;
