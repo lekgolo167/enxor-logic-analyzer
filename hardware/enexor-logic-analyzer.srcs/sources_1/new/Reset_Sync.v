@@ -27,8 +27,8 @@ module Reset_Sync(
 );
 	reg R1;
 	
-	always @(posedge i_sys_clk or negedge i_rstn) begin
-		if(!i_rstn) begin
+	always @(posedge i_sys_clk or posedge i_rstn) begin
+		if(i_rstn) begin
 			R1 <= 0;
 			o_rstsync <= 0;
 		end

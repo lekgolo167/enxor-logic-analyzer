@@ -22,14 +22,13 @@
 
 module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16)(
     input i_sys_clk,
+    input i_rstn,
     input i_triggered_state,
-    input i_pre_read,
     input i_post_read,
     input i_buffer_full,
     input i_finished_read,
     input i_t_rdy,
     input i_rx_DV,
-    input i_tx_active,
     input i_tx_done,
     input [7:0] i_rx_byte,
     input [PACKET_WIDTH-1:0] i_data,
@@ -58,4 +57,94 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16)(
         .o_tx_byte(o_tx_byte)
     );
     
+    localparam s_COMMAND =  2'b00;
+    localparam s_VALUE =    2'b01;
+    localparam s_SAVE =     2'b10;
+    
+    localparam SET_SCALER =     8'hFA;
+    localparam SET_CHANNEL =    8'hFB;
+    localparam SET_TRIG_TYPE =  8'hFC;
+    localparam SET_ENABLE =     8'hFD;
+    
+    reg r_save, r_stored;
+    reg [1:0] r_SM_cmd;
+    reg [7:0] commandByte;
+    reg [7:0] paramByte;
+    
+    always @(posedge i_sys_clk, negedge i_rstn) begin
+        if (!i_rstn) begin
+            r_SM_cmd <= s_COMMAND;
+        end
+        else begin
+        case (r_SM_cmd)
+            s_COMMAND:
+                begin
+                    if(i_rx_DV) begin
+                        commandByte <= i_rx_byte;
+                        r_SM_cmd <= s_VALUE;
+                    end
+                end
+            s_VALUE: 
+                begin
+                    if(i_rx_DV) begin
+                        paramByte <= i_rx_byte;
+                        r_SM_cmd <= s_SAVE;
+                    end
+                end
+            s_SAVE:
+                begin
+                    r_save <= 1;
+                    if (r_stored) begin
+                        r_save <= 0;
+                        r_SM_cmd <= s_COMMAND;
+                    end
+                end
+        endcase
+        end
+    end
+    
+    always @(posedge i_sys_clk, negedge i_rstn) begin
+        if (!i_rstn) begin
+            o_scaler <= 0;
+            o_channel_select <= 0;
+            o_trigger_type <= 0;
+            o_enable <= 0;
+            
+        end else begin
+        r_stored <= 0;
+        if (r_save && !r_stored) begin
+            r_stored <= 1;
+            case (commandByte)
+                SET_SCALER:
+                    begin
+                        o_scaler <= {o_scaler[7:0], paramByte};
+                    end
+                SET_CHANNEL: 
+                    begin
+                        o_channel_select <= paramByte[$clog2(DATA_WIDTH)-1:0];
+                    end
+                SET_TRIG_TYPE:
+                    begin
+                        o_trigger_type <= paramByte[0];
+                    end
+                SET_ENABLE:
+                    begin
+                        o_enable <= paramByte[0];
+                    end
+            endcase
+        end
+        end
+    end
+    
+    always @(posedge i_sys_clk, negedge i_rstn) begin
+        if (!i_rstn) begin
+            o_start_read <= 0;
+        end
+        else if (i_finished_read) begin
+            o_start_read <= 0;
+        end
+        else if(i_buffer_full) begin
+            o_start_read <= 1;
+        end
+    end
 endmodule

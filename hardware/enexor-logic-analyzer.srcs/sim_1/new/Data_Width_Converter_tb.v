@@ -67,7 +67,6 @@ module Data_Width_Converter_tb;
     Data_Buffers #(.PACKET_WIDTH(16), .PRE_DEPTH(4), .POST_DEPTH(12)) DBS (
         .i_sys_clk(clk),
         .i_rstn(rst),
-        .i_enable(enable),
         .i_triggered_state(w_triggered_state),
         .i_event(w_event | w_rollover),
         .i_r_ack(r_ack),
