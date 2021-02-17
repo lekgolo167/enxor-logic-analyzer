@@ -28,7 +28,6 @@ input [7:0] i_Tx_Byte,
 output o_Tx_Serial,
 output o_Rx_DV,
 output [7:0] o_Rx_Byte,
-output o_Tx_Active,
 output o_Tx_Done
     );
     
@@ -43,7 +42,6 @@ output o_Tx_Done
         .i_sys_clk(i_sys_clk),
         .i_Tx_DV(i_Tx_DV),
         .i_Tx_Byte(i_Tx_Byte),
-        .o_Tx_Active(o_Tx_Active),
         .o_Tx_Serial(o_Tx_Serial),
         .o_Tx_Done(o_Tx_Done)  
     );

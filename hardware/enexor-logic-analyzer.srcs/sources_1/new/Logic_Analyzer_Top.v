@@ -25,7 +25,9 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
     input i_rstn,
     input [DATA_WIDTH-1:0] i_raw_sig,
     input i_rx,
+    output o_start_read_led,
     output o_triggered_led,
+    output o_enabled,
     output o_tx
 );
     
@@ -35,11 +37,13 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
     wire [7:0] w_time, w_tx_byte, w_rx_byte;
     wire [15:0] w_scaler;
     wire w_sample_clk_posedge, w_triggered_state, w_rollover, w_event, w_trig_pulse, w_rstn, w_buffer_full, w_finished_read, w_trigger_type;
-    wire w_r_ack, w_enable, w_start_read, w_t_rdy, w_tx_DV, w_rx_DV, w_tx_done, w_tx_active;
+    wire w_r_ack, w_enable, w_start_read, w_t_rdy, w_tx_DV, w_rx_DV, w_tx_done, w_post_read;
     
     assign o_triggered_led = w_triggered_state;
+    assign o_start_read_led = w_start_read;
+    assign o_enabled = w_enable;
     
-    Reset_Sync (
+    Reset_Sync RST(
         .i_sys_clk(i_sys_clk),
         .i_rstn(i_rstn),
         .o_rstsync(w_rstn)
@@ -82,12 +86,12 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
     Data_Buffers #(.PACKET_WIDTH(PACKET_WIDTH), .PRE_DEPTH(PRE_DEPTH), .POST_DEPTH(POST_DEPTH)) DBS(
         .i_sys_clk(i_sys_clk),
         .i_rstn(w_rstn),
-        .i_enable(w_enable),
         .i_triggered_state(w_triggered_state),
         .i_event(w_event | w_rollover),
         .i_r_ack(w_r_ack),
         .i_start_read(w_start_read),
         .i_data({w_time, w_channels}),
+        .o_post_read(w_post_read),
         .o_buffer_full(w_buffer_full),
         .o_finished_read(w_finished_read),
         .o_data(w_data),
@@ -96,11 +100,13 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
     
     FSM_Controller FSM (
         .i_sys_clk(i_sys_clk),
+        .i_rstn(w_rstn),
+        .i_triggered_state(w_triggered_state),
         .i_buffer_full(w_buffer_full),
         .i_finished_read(w_finished_read),
+        .i_post_read(w_post_read),
         .i_t_rdy(w_t_rdy),
         .i_rx_DV(w_rx_DV),
-        .i_tx_active(w_tx_active),// might remove this
         .i_tx_done(w_tx_done),
         .i_rx_byte(w_rx_byte),
         .i_data(w_data),
@@ -114,7 +120,7 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
         .o_tx_byte(w_tx_byte)
     );
     
-    uart #(.CLKS_PER_BIT(87)) USB (
+    uart #(.CLKS_PER_BIT(868)) USB (
         .i_sys_clk(i_sys_clk),
         .i_Rx_Serial(i_rx),
         .i_Tx_DV(w_tx_DV),
@@ -122,8 +128,7 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, PACKET_WIDTH = 16, PRE_DEP
         .o_Tx_Serial(o_tx),
         .o_Rx_DV(w_rx_DV),
         .o_Rx_Byte(w_rx_byte),
-        .o_Tx_Active(w_tx_active),
         .o_Tx_Done(w_tx_done)
     );
-    
+
 endmodule

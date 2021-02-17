@@ -23,14 +23,13 @@
 module Data_Buffers #(PACKET_WIDTH = 16, PRE_DEPTH = 4, POST_DEPTH = 12)(
     input i_sys_clk,
     input i_rstn,
-    input i_enable, // No longer needed
     input i_triggered_state,
     input i_event,
     input i_r_ack,
     input i_start_read,
     input [PACKET_WIDTH-1:0] i_data,
     output reg o_post_read,
-    output reg o_buffer_full, // Might be able to change this to an internal register
+    output reg o_buffer_full,
     output reg o_finished_read,
     output [PACKET_WIDTH-1:0] o_data,
     output reg o_t_rdy
