@@ -6,12 +6,23 @@ from matplotlib.widgets import Slider
 from matplotlib.figure import Figure 
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,  NavigationToolbar2Tk) 
 matplotlib.use('TkAgg') 
+from logicAnalyzer import *
+from serialInterface import *
+
 
 # plot function is created for  
 # plotting the graph in  
 # tkinter window 
 def plot(): 
-  
+
+    las = LogicAnalyzerModel()
+    las.initializeFromConfigFile('./config.json')
+
+    configureLogicAnalyzer(las)
+    enableLogicAnalyzer(las)
+    data = readIncomingSerialData(las)
+    readInputstream(data, las)
+
     # the figure that will contain the plot 
     # fig = Figure(figsize = (5, 5), 
     #              dpi = 100) 
@@ -24,17 +35,15 @@ def plot():
   
     # # plotting the graph 
     # plot1.plot(y) 
-    x = np.linspace(0, 2 * np.pi, 20000)
-    y = np.sin(x ** 2)
 
     fig, axs = plt.subplots(3, sharex=True, sharey=True)
     canvas = FigureCanvasTkAgg(fig, master = window)   
     
-    canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+    canvas.get_tk_widget().pack( expand=1)
     fig.suptitle('Sharing both axes')
-    axs[0].plot(x, y ** 2)
-    axs[1].plot(x, 0.3 * y, 'o')
-    axs[2].plot(x, y, '+')
+    axs[0].plot(las.x_axis, las.channel_data[0])
+    axs[1].plot(las.x_axis,las.channel_data[1], 'o')
+    axs[2].plot(las.x_axis, las.channel_data[2], '+')
 
 
     axpos = plt.axes([0.2, 0.03, 0.65, 0.03])
@@ -46,9 +55,9 @@ def plot():
 
     def update(val):
         pos = spos.val
-        axs[0].axis([pos,pos+2,0,1])
-        axs[1].axis([pos,pos+2,0,1])
-        axs[2].axis([pos,pos+2,0,1])
+        axs[0].axis([pos,pos+256,0,1])
+        axs[1].axis([pos,pos+256,0,1])
+        axs[2].axis([pos,pos+256,0,1])
         canvas.draw()
         fig.canvas.draw_idle()
 

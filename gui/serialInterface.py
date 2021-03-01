@@ -61,7 +61,15 @@ def readIncomingSerialData(las):
         if bytesToRead > 0:
             total_bytes += bytesToRead
             bs.append(ser.read(bytesToRead))
-            if total_bytes == las.mem_depth*BYTES_PER_ROW:
+            if total_bytes == las.mem_depth*las.bytes_per_row:
                 break
+
     ser.close
-    return bs
+    return convertByteLists(bs)
+
+def convertByteLists(bs):
+    combined = bs[0]
+    for x in range(1, len(bs)):
+        combined += bs[x]
+
+    return combined

@@ -1,4 +1,5 @@
 import math
+import json
 
 SCALER_HEADER = b'\xFA'
 CHANNEL_HEADER = b'\xFB'
@@ -6,34 +7,44 @@ TRIG_TYPE_HEADER = b'\xFC'
 ENABLE_HEADER = b'\xFD'
 PRE_BUFFER_HEADER = b'\xA1'
 POST_BUFFER_HEADER = b'\xA3'
-BYTES_PER_ROW = 3
 TRIGGER_RISING_ENDGE = 1
 TRIGGER_FALLING_ENDGE = 0
 MAX_TIMER_COUNT = 256
-FPGA_FREQ = 100000000
-MEMORY_DEPTH = 8192
 
 class LogicAnalyzerModel():
 	def __init__(self):
 		self.port = ''
-		self.baud = 115200
+		self.baud = 9600
 		self.scaler = 1
 		self.channel = 0
-		self.trigger_type = 1
+		self.trigger_type = 0
 		self.mem_depth = 0
 		self.pre_trigger_byte_count = 0
 		self.post_trigger_byte_count = 0
 		self.total_time_units = 0
 		self.channel_data = []
 		self.timestamps = []
+		self.x_axis = []
 		self.num_channels = 0
+		self.bytes_per_row = 4
+		self.clk_freq = 10000000
 
 	def getMaxCaptureTime(self):
-		return (MAX_TIMER_COUNT*MEMORY_DEPTH) / (FPGA_FREQ/self.scaler)
+		return (MAX_TIMER_COUNT*self.mem_depth) / (self.clk_freq/self.scaler)
 
 	def initializeFromConfigFile(self, file_path):
 		with open(file_path, 'r') as config_file:
-			pass
+			obj = json.loads(config_file.read())
+			self.baud = obj['baud_rate']
+			self.port = obj['port_name']
+			self.clk_freq = obj['clk_freq']
+			self.mem_depth = obj['mem_depth']
+			self.scaler = obj['sample_rate']
+			self.channel = obj['trig_channel']
+			self.trigger_type = obj['trig_type']
+			self.num_channels = obj['num_channels']
+			self.bytes_per_row = obj['bytes_per_row']
+			
 
 def writeLogicAnalyzerDataToFile(file_path, la):
 
@@ -41,7 +52,7 @@ def writeLogicAnalyzerDataToFile(file_path, la):
         # set 1st byte to number of channels
         binary_file.write(bytes([la.num_channels]))
         binary_file.write(bytes([int(math.log2(la.mem_depth))]))
-
+        print(la.pre_trigger_byte_count)
         for entry_num in range(la.mem_depth):
             if entry_num < la.pre_trigger_byte_count:
                 binary_file.write(PRE_BUFFER_HEADER)
@@ -74,9 +85,9 @@ def readLogicAnalyzerDataFromFile(file_path):
 
             if not byte_header:
                 break
-            elif ord(byte_header) == 0xA1:
+            elif byte_header == PRE_BUFFER_HEADER:
                 la.pre_trigger_byte_count += 1
-            elif ord(byte_header) == 0xA3:
+            elif byte_header == POST_BUFFER_HEADER:
                 la.post_trigger_byte_count += 1
 
             for offset in range(0, (la.num_channels // 8), 8):
@@ -84,10 +95,49 @@ def readLogicAnalyzerDataFromFile(file_path):
                 data = ord(current_byte)
 
                 for bit in range(8):
-                    la.channel_data[bit+offset].append((data & (1 << bit)) >> bit)
+                    la.channel_data[bit+offset].append((data >> bit) & 1)
 
             timestamp = ord(binary_file.read(1))
             la.timestamps.append(timestamp)
-            la.total_time_units += timestamp
+            la.total_time_units += timestamp+1
+            la.x_axis.append(la.total_time_units)
 
         return la
+
+def readInputstream(byte_arr, las):
+	las.channel_data = []
+	las.timestamps = []
+	las.post_trigger_byte_count = 0
+	las.pre_trigger_byte_count = 0
+	las.total_time_units = 0
+
+	for x in range(las.num_channels):
+		las.channel_data.append([])
+	
+	entry_num = 0
+	while entry_num < (las.mem_depth*las.bytes_per_row):
+		byte_header = byte_arr[entry_num]
+		entry_num += 1
+
+		if not byte_header:
+			break
+		elif byte_header == ord(PRE_BUFFER_HEADER):
+			las.pre_trigger_byte_count += 1
+		elif byte_header == ord(POST_BUFFER_HEADER):
+			las.post_trigger_byte_count += 1
+
+		for offset in range(0, (las.num_channels // 8), 8):
+			current_byte = byte_arr[entry_num]
+			entry_num += 1
+			data = current_byte
+
+			for bit in range(8):
+				las.channel_data[bit+offset].append((data >> bit) & 1)
+
+		timestamp = byte_arr[entry_num]
+		entry_num += 1
+		las.timestamps.append(timestamp)
+		las.total_time_units += timestamp+1
+		las.x_axis.append(las.total_time_units)
+
+	return las
