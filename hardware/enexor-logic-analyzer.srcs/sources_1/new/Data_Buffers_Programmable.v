@@ -20,12 +20,12 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Data_Buffers_Programmable #(PACKET_WIDTH = 16, DEPTH = 16)(
+module Data_Buffers_Programmable #(PACKET_WIDTH = 16, MEM_DEPTH = 16)(
     input i_sys_clk,
     input i_rstn,
     input i_enable,
     input i_stop,
-    input [$clog2(DEPTH)-1:0] i_pre_cap_depth,
+    input [$clog2(MEM_DEPTH)-1:0] i_precap_depth,
     input i_triggered_state,
     input i_event,
     input i_r_ack,
@@ -38,7 +38,7 @@ module Data_Buffers_Programmable #(PACKET_WIDTH = 16, DEPTH = 16)(
     output reg o_t_rdy
 );
 
-    localparam ADDR_WIDTH = $clog2(DEPTH);
+    localparam ADDR_WIDTH = $clog2(MEM_DEPTH);
 
     localparam s_INIT = 3'b000;
     localparam s_PRE_FILL = 3'b001;
@@ -93,7 +93,7 @@ module Data_Buffers_Programmable #(PACKET_WIDTH = 16, DEPTH = 16)(
                             r_wr_state <= s_POST_CAPTURE;
                         end
                         // precapture buffer has grown to max size
-                        else if (r_wr_adr == i_pre_cap_depth) begin 
+                        else if (r_wr_adr == i_precap_depth) begin 
                             r_wr_state <= s_PRE_CAPTURE;
                         end
                     end
@@ -227,7 +227,7 @@ module Data_Buffers_Programmable #(PACKET_WIDTH = 16, DEPTH = 16)(
         end
     end // End always
     
-    sram #(.ADDR_WIDTH(ADDR_WIDTH), .DATA_WIDTH(PACKET_WIDTH), .DEPTH(DEPTH)) sram_0 (
+    sram #(.ADDR_WIDTH(ADDR_WIDTH), .DATA_WIDTH(PACKET_WIDTH), .DEPTH(MEM_DEPTH)) sram_0 (
         .i_sys_clk(i_sys_clk),
         .i_wr_en(r_wr_en & i_event),
         .i_wr_adr(r_wr_adr),

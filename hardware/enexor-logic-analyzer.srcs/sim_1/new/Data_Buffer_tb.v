@@ -63,15 +63,17 @@ module Data_Buffer_tb;
         .o_event_pulse(w_event)
         );
         
-    Data_Buffers #(.PACKET_WIDTH(16), .PRE_DEPTH(4), .POST_DEPTH(12)) DUT (
+    Data_Buffers_Programmable #(.PACKET_WIDTH(16), .MEM_DEPTH(16)) DUT (
         .i_sys_clk(clk),
         .i_rstn(rst),
         .i_enable(enable),
+        .i_stop(0),
         .i_triggered_state(w_triggered_state),
         .i_event(w_event | w_rollover),
         .i_r_ack(r_ack),
         .i_start_read(start_read),
         .i_data({w_time, w_channels}),
+        .i_precap_depth(4),
         .o_post_read(post_read),
         .o_buffer_full(buffer_full),
         .o_finished_read(finished_read),

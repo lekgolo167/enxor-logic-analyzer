@@ -5,6 +5,7 @@ SCALER_HEADER = b'\xFA'
 CHANNEL_HEADER = b'\xFB'
 TRIG_TYPE_HEADER = b'\xFC'
 ENABLE_HEADER = b'\xFD'
+PRECAP_SIZE = b'\xFE'
 PRE_BUFFER_HEADER = b'\xA1'
 POST_BUFFER_HEADER = b'\xA3'
 TRIGGER_RISING_ENDGE = 1
@@ -19,6 +20,7 @@ class LogicAnalyzerModel():
 		self.channel = 0
 		self.trigger_type = 0
 		self.mem_depth = 0
+		self.precap_size = 0
 		self.pre_trigger_byte_count = 0
 		self.post_trigger_byte_count = 0
 		self.total_time_units = 0
@@ -39,6 +41,7 @@ class LogicAnalyzerModel():
 			self.port = obj['port_name']
 			self.clk_freq = obj['clk_freq']
 			self.mem_depth = obj['mem_depth']
+			self.precap_size = obj['precap_size']
 			self.scaler = obj['sample_rate']
 			self.channel = obj['trig_channel']
 			self.trigger_type = obj['trig_type']
@@ -99,7 +102,7 @@ def readLogicAnalyzerDataFromFile(file_path):
 
             timestamp = ord(binary_file.read(1))
             la.timestamps.append(timestamp)
-            la.total_time_units += timestamp+1
+            la.total_time_units += timestamp
             la.x_axis.append(la.total_time_units)
 
         return la
@@ -137,7 +140,7 @@ def readInputstream(byte_arr, las):
 		timestamp = byte_arr[entry_num]
 		entry_num += 1
 		las.timestamps.append(timestamp)
-		las.total_time_units += timestamp+1
+		las.total_time_units += timestamp
 		las.x_axis.append(las.total_time_units)
 
 	return las

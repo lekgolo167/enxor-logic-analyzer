@@ -80,8 +80,6 @@ module Data_Width_Converter #(parameter PACKET_WIDTH = 16) (
     always @(posedge i_clk) begin
         if (~i_enable) begin
             r_state <= WAIT;
-            o_tx_DV <= 0; // Move these two into the state WAIT?
-            o_r_ack <= 0;
         end
         else begin 
             case (r_state)
@@ -89,6 +87,8 @@ module Data_Width_Converter #(parameter PACKET_WIDTH = 16) (
                     if (i_t_rdy) begin
                         r_state <= SEND;
                     end
+                    o_tx_DV <= 0; // Move these two into the state WAIT?
+                    o_r_ack <= 0;
                     byte <= 0;
                 end
                 SEND: begin

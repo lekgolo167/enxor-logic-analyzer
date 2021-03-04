@@ -20,7 +20,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16)(
+module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, parameter MEM_DEPTH = 16)(
     input i_sys_clk,
     input i_rstn,
     input i_triggered_state,
@@ -33,6 +33,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16)(
     input [7:0] i_rx_byte,
     input [PACKET_WIDTH-1:0] i_data,
     output reg [15:0] o_scaler,
+    output reg [$clog2(MEM_DEPTH)-1:0] o_precap_depth,
     output reg [$clog2(DATA_WIDTH)-1:0] o_channel_select,
     output reg o_trigger_type,
     output reg o_enable,
@@ -61,17 +62,18 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16)(
     localparam s_VALUE =    2'b01;
     localparam s_SAVE =     2'b10;
     
-    localparam SET_SCALER =     8'hFA;
-    localparam SET_CHANNEL =    8'hFB;
-    localparam SET_TRIG_TYPE =  8'hFC;
-    localparam SET_ENABLE =     8'hFD;
+    localparam SET_SCALER =         8'hFA;
+    localparam SET_CHANNEL =        8'hFB;
+    localparam SET_TRIG_TYPE =      8'hFC;
+    localparam SET_ENABLE =         8'hFD;
+    localparam SET_PRECAP_DEPTH =   8'hFE;
     
     reg r_save, r_stored;
     reg [1:0] r_SM_cmd;
     reg [7:0] commandByte;
     reg [7:0] paramByte;
     
-    always @(posedge i_sys_clk, negedge i_rstn) begin
+    always @(posedge i_sys_clk) begin
         if (!i_rstn) begin
             r_SM_cmd <= s_COMMAND;
         end
@@ -103,7 +105,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16)(
         end
     end
     
-    always @(posedge i_sys_clk, negedge i_rstn) begin
+    always @(posedge i_sys_clk) begin
         if (!i_rstn) begin
             o_scaler <= 0;
             o_channel_select <= 0;
@@ -118,6 +120,10 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16)(
                 SET_SCALER:
                     begin
                         o_scaler <= {o_scaler[7:0], paramByte};
+                    end
+                SET_PRECAP_DEPTH:
+                    begin
+                        o_precap_depth <= {o_precap_depth[7:0], paramByte};
                     end
                 SET_CHANNEL: 
                     begin
@@ -136,7 +142,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16)(
         end
     end
     
-    always @(posedge i_sys_clk, negedge i_rstn) begin
+    always @(posedge i_sys_clk) begin
         if (!i_rstn) begin
             o_start_read <= 0;
         end

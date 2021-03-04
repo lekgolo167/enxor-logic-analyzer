@@ -26,6 +26,13 @@ def configureLogicAnalyzer(las):
     # LSB
     ser.write(SCALER_HEADER)
     ser.write(bytes([(las.scaler-1) & 0xFF]))
+    # set precapture memory size
+    # MSB
+    ser.write(PRECAP_SIZE)
+    ser.write(bytes([(las.precap_size>>8) & 0xFF]))
+    # LSB
+    ser.write(PRECAP_SIZE)
+    ser.write(bytes([(las.precap_size) & 0xFF]))
     # set channel
     ser.write(CHANNEL_HEADER)
     ser.write(bytes([las.channel]))

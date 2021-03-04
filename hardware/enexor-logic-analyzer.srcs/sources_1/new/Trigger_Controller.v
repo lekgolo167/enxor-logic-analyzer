@@ -22,7 +22,6 @@
 
 module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     input i_sys_clk,
-    input i_rstn,
     input [DATA_WIDTH-1:0] i_data,
     input [$clog2(DATA_WIDTH)-1:0] i_channel_select,
     input i_trigger_type,
@@ -51,17 +50,12 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     // Negedge detection
     assign ne = ~i_data[i_channel_select] & r_last[i_channel_select];
     
-    always @(posedge i_sys_clk, negedge i_rstn) begin
-        if (!i_rstn) begin
+    always @(posedge i_sys_clk) begin
+        if (!i_enable) begin
             r_trigger_event <= 0;
         end
-        else begin
-            if (!i_enable) begin
-                r_trigger_event <= 0;
-            end
-            else if (i_enable & w_trigger_pulse & i_sample_clk_posedge) begin
-                r_trigger_event <= 1;
-            end
+        else if (i_enable & w_trigger_pulse & i_sample_clk_posedge) begin
+            r_trigger_event <= 1;
         end
     end // End always
     
