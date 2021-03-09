@@ -34,6 +34,9 @@ class LogicAnalyzerModel():
 	def getMaxCaptureTime(self):
 		return (MAX_TIMER_COUNT*self.mem_depth) / (self.clk_freq/self.scaler)
 
+	def getSamplesIntervalInSeconds(self):
+		return 1 / (self.clk_freq / self.scaler)
+
 	def initializeFromConfigFile(self, file_path):
 		with open(file_path, 'r') as config_file:
 			obj = json.loads(config_file.read())

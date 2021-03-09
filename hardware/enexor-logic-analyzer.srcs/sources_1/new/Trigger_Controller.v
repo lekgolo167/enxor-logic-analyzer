@@ -32,7 +32,7 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     );
     
     reg [DATA_WIDTH-1:0] r_last;
-    reg sig_dly, r_trigger_event;
+    reg r_trigger_event;
     wire pe, ne, w_trigger_pulse;
     
     assign w_trigger_pulse = ((pe & i_trigger_type) | (ne & ~i_trigger_type)) & i_enable;

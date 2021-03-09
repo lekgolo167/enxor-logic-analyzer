@@ -40,6 +40,8 @@ def testInitializeFromFile():
 		error += 1
 	if la1.bytes_per_row == la2.bytes_per_row:
 		error += 1
+	if la1.precap_size == la2.precap_size:
+		error += 1
 
 	if error > 0:
 		print('[Init from file ... FAIL]')

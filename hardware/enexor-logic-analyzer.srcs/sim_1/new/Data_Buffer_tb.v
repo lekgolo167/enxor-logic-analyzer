@@ -24,27 +24,27 @@ module Data_Buffer_tb;
 
     reg clk, rst, enable, start_read, r_ack;
     wire [7:0] w_time, w_channels;
-    reg [11:0] count;
+    reg [19:0] count;
     
     wire buffer_full, w_sample_clk_posedge, w_rollover, w_triggered_state, w_event, finished_read, post_read, t_rdy;
     wire [15:0] data;
     
     Pulse_Sync #(.DATA_WIDTH(8))PS (
         .i_sys_clk(clk),
-        .i_async(count[11:4]),
+        .i_async(count[11:4]^count[19:12]),
         .o_sync(w_channels)
     );
     
     Clock_Divider CD (
         .i_sys_clk(clk),
-        .i_rstn(rst),
+        .i_enable(enable),
         .i_scaler(5),
         .o_sample_clk_posedge(w_sample_clk_posedge)
     );
     
     Timestamp_Counter TSC (
         .i_sys_clk(clk),
-        .i_rstn(rst),
+        .i_enable(enable),
         .i_incr(w_sample_clk_posedge),
         .i_event(w_event),
         .o_rollover(w_rollover),
@@ -53,7 +53,6 @@ module Data_Buffer_tb;
     
     Trigger_Controller #(.DATA_WIDTH(8)) TC (
         .i_sys_clk(clk),
-        .i_rstn(rst),
         .i_data(w_channels),
         .i_channel_select(4),
         .i_trigger_type(1),
