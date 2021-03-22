@@ -27,6 +27,8 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     input i_trigger_type,
     input i_enable,
     input i_sample_clk_posedge,
+    input i_prefilled,
+    input i_hold,
     output o_triggered_state,
     output o_event_pulse
     );
@@ -36,8 +38,8 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     wire pe, ne, w_trigger_pulse;
     
     assign w_trigger_pulse = ((pe & i_trigger_type) | (ne & ~i_trigger_type)) & i_enable;
-    assign o_triggered_state = (o_event_pulse & w_trigger_pulse) | r_trigger_event;
-    assign o_event_pulse = (r_last != i_data)  & i_sample_clk_posedge;
+    assign o_triggered_state = r_trigger_event;
+    assign o_event_pulse = (r_last != i_data) & i_sample_clk_posedge;
     
     always @(posedge i_sys_clk) begin
         if (i_sample_clk_posedge) begin
@@ -55,7 +57,7 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
             r_trigger_event <= 0;
         end
         else if (i_enable & w_trigger_pulse & i_sample_clk_posedge) begin
-            r_trigger_event <= 1;
+            r_trigger_event <= i_prefilled | ~i_hold;
         end
     end // End always
     

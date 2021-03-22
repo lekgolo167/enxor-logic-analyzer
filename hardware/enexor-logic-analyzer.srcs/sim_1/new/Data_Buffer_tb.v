@@ -26,7 +26,7 @@ module Data_Buffer_tb;
     wire [7:0] w_time, w_channels;
     reg [19:0] count;
     
-    wire buffer_full, w_sample_clk_posedge, w_rollover, w_triggered_state, w_event, finished_read, post_read, t_rdy;
+    wire buffer_full, w_sample_clk_posedge, w_rollover, w_triggered_state, w_event, finished_read, post_read, t_rdy, w_prefilled;
     wire [15:0] data;
     
     Pulse_Sync #(.DATA_WIDTH(8))PS (
@@ -58,6 +58,8 @@ module Data_Buffer_tb;
         .i_trigger_type(1),
         .i_enable(enable),
         .i_sample_clk_posedge(w_sample_clk_posedge),
+        .i_prefilled(w_prefilled),
+        .i_hold(0),
         .o_triggered_state(w_triggered_state),
         .o_event_pulse(w_event)
         );
@@ -72,6 +74,7 @@ module Data_Buffer_tb;
         .i_r_ack(r_ack),
         .i_start_read(start_read),
         .i_data({w_time, w_channels}),
+        .o_prefilled(w_prefilled),
         .i_precap_depth(4),
         .o_post_read(post_read),
         .o_buffer_full(buffer_full),

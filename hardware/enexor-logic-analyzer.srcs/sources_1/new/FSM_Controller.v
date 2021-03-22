@@ -37,6 +37,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
     output reg [$clog2(DATA_WIDTH)-1:0] o_channel_select,
     output reg o_trigger_type,
     output reg o_enable,
+    output reg o_hold,
     output o_r_ack,
     output reg o_start_read,
     output o_tx_DV,
@@ -67,6 +68,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
     localparam SET_TRIG_TYPE =      8'hFC;
     localparam SET_ENABLE =         8'hFD;
     localparam SET_PRECAP_DEPTH =   8'hFE;
+    localparam SET_HOLD =           8'hFF;
     
     reg r_save, r_stored;
     reg [1:0] r_SM_cmd;
@@ -111,34 +113,39 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
             o_channel_select <= 0;
             o_trigger_type <= 0;
             o_enable <= 0;
-            
-        end else begin
-        r_stored <= 0;
-        if (r_save && !r_stored) begin
-            r_stored <= 1;
-            case (commandByte)
-                SET_SCALER:
-                    begin
-                        o_scaler <= {o_scaler[7:0], paramByte};
-                    end
-                SET_PRECAP_DEPTH:
-                    begin
-                        o_precap_depth <= {o_precap_depth[7:0], paramByte};
-                    end
-                SET_CHANNEL: 
-                    begin
-                        o_channel_select <= paramByte[$clog2(DATA_WIDTH)-1:0];
-                    end
-                SET_TRIG_TYPE:
-                    begin
-                        o_trigger_type <= paramByte[0];
-                    end
-                SET_ENABLE:
-                    begin
-                        o_enable <= paramByte[0];
-                    end
-            endcase
-        end
+            o_hold <= 0;
+        end 
+        else begin
+            r_stored <= 0;
+            if (r_save && !r_stored) begin
+                r_stored <= 1;
+                case (commandByte)
+                    SET_SCALER:
+                        begin
+                            o_scaler <= {o_scaler[7:0], paramByte};
+                        end
+                    SET_PRECAP_DEPTH:
+                        begin
+                            o_precap_depth <= {o_precap_depth[7:0], paramByte};
+                        end
+                    SET_CHANNEL: 
+                        begin
+                            o_channel_select <= paramByte[$clog2(DATA_WIDTH)-1:0];
+                        end
+                    SET_TRIG_TYPE:
+                        begin
+                            o_trigger_type <= paramByte[0];
+                        end
+                    SET_ENABLE:
+                        begin
+                            o_enable <= paramByte[0];
+                        end
+                    SET_HOLD:
+                        begin
+                            o_hold <= paramByte[0];
+                        end
+                endcase
+            end
         end
     end
     
@@ -153,4 +160,5 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
             o_start_read <= 1;
         end
     end
+
 endmodule

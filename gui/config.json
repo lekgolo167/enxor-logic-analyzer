@@ -3,10 +3,10 @@
 	"port_name" : "COM13",
 	"clk_freq" : 100000000,
 	"mem_depth" : 8192,
-	"precap_size" : 1024,
+	"precap_size" : 7000,
 	"sample_rate" : 238,
-	"trig_channel" : 1,
+	"trig_channel" : 0,
 	"trig_type" : 1,
 	"num_channels" : 8,
-	"bytes_per_row" : 3
+	"hold" : 0
 }
