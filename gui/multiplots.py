@@ -16,10 +16,12 @@ print(las.pre_trigger_byte_count)
 print(las.post_trigger_byte_count)
 writeLogicAnalyzerDataToFile('./test_data/test4.bin',las)
 fig, axs = plt.subplots(las.num_channels, sharex=True, sharey=True)
-
+trigger_point = las.x_axis[las.pre_trigger_byte_count-1]
+print(trigger_point)
+axs[las.channel].axvline(x=trigger_point, color='red', linestyle ="--", linewidth=4)
 fig.suptitle('Sharing both axes')
 for x in range(las.num_channels):
-	axs[x].step(las.x_axis, las.channel_data[x])
+	axs[x].step(las.x_axis, las.channel_data[x],where='post')
 
 
 

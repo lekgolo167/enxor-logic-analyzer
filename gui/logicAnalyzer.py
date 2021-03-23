@@ -19,7 +19,7 @@ class LogicAnalyzerModel():
 		self.baud = 0
 		self.scaler = 1
 		self.channel = 0
-		self.trigger_type = 0
+		self.trigger_type = 1
 		self.mem_depth = 0
 		self.precap_size = 0
 		self.pre_trigger_byte_count = 0
@@ -42,17 +42,23 @@ class LogicAnalyzerModel():
 	def initializeFromConfigFile(self, file_path):
 		with open(file_path, 'r') as config_file:
 			obj = json.loads(config_file.read())
-			self.baud = obj['baud_rate']
-			self.port = obj['port_name']
-			self.clk_freq = obj['clk_freq']
-			self.mem_depth = obj['mem_depth']
-			self.precap_size = obj['precap_size']
-			self.scaler = obj['sample_rate']
-			self.channel = obj['trig_channel']
-			self.trigger_type = obj['trig_type']
-			self.num_channels = obj['num_channels']
-			self.hold = obj['hold']
-			self.bytes_per_row = (self.num_channels // 8) + 2
+
+			self.baud = obj.get('baud_rate', 115200)
+			self.port = obj.get('port_name', '')
+			self.hold = obj.get('hold', 0)
+			self.precap_size = obj.get('precap_size', 4)
+			self.scaler = obj.get('sample_rate', 1)
+			self.channel = obj.get('trig_channel', 0)
+			self.trigger_type = obj.get('trig_type', 1)
+			try:
+				self.mem_depth = obj['mem_depth']
+				self.clk_freq = obj['clk_freq']
+				self.num_channels = obj['num_channels']
+				self.bytes_per_row = (self.num_channels // 8) + 2
+			except Exception:
+				return False
+
+			return True
 			
 
 def writeLogicAnalyzerDataToFile(file_path, la):
@@ -89,6 +95,7 @@ def readLogicAnalyzerDataFromFile(file_path):
 
 		# read 1st byte to get number of channels
 		la.num_channels = ord(binary_file.read(1))
+		la.bytes_per_row = (la.num_channels // 8) + 2
 		# read 2nd byte for the memory depth
 		la.mem_depth = int(math.pow(2 ,ord(binary_file.read(1))))
 		# read bytes 3 - 6 for the clock frequency
