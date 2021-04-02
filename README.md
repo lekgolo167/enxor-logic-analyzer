@@ -10,20 +10,51 @@
 6. Customize
 ---
 ## Overview
+Electronic hobbyists, makers, and engineering students need low-cost and effective tools. One of these tools includes a logic analyzer for debugging digital designs. Unfortunately, there is a large gap in this market, professional grade logic analyzers start at a minimum of 400 dollars while the cheaper version is around 15 dollars but is extremely limited in functionality. There are no mid-tier options that meet the needs of the aforementioned. This project is an open-source design using FPGAs offering great performance. In addition, the design uses only Verilog source code, no IP cores or device specific features. This makes the design portable to any FPGA, you can adjust the number of input channels and memory depth very quickly. For the accompanying desktop application, Python is used to allow the GUI to work on most operating system.
+
+This project consists of 5 major blocks to carry out a functional logic analyzer: a trigger controller, sample rate counter, memory buffer, control module, and UART communication.
+* Trigger Controller<br>
+  This module is set to wait for a trigger condition on a user configureable channel. That condition can be either a falling or rising edge and is set in the GUI. A sample rate signal is used to tell the trigger controller when to shift new data in. If the new data data does not match the old data then a event signal is sent out to other blocks. Once the trigger condition occurs, a triggered state signal is sent to the memory buffer. 
+* Sample Rate Counter<br>
+  This system takes in a 16-bit divisor that tells the logic analyzer what the sample frequency is. Another counter is incremented at every sample clock to keep track of the relative time between events. If an event occurrs the counter is reset to 1 and resumes counting. If the counter overflows then it signals the memory controller to fill in a new row.
+* Memory Buffer<br>
+  The memory buffer combines the timestamp and data storing it in RAM. Each time it receives a event or timestamp rollover signal a new row in the buffer is filled. Before a trigger condition occurs, this block behaves as a circular buffer continually overwritting entries. Once a trigger condition occurs the buffer acts as a FIFO and fills all the way up. The buffer has a precapture size setting to control the ratio of data that is saved before and after a trigger condition. Once full, the controller module is signaled and data is read out row by row.
+* Controller<br>
+  This block waits for commands to be received from the host computer and saves the commands to control registers. Once the enable command is received, the controller waits for the memory buffer to fill up. Then the data is read out of the buffer and converted from its original width to a width of one byte to be sent off to the UART block.
+* UART Communication<br>
+  This block simply waits for bytes to be sent from the host PC and relays the commands to the controller block. Once the controller sends the UART block data, it preappends a header on the captured data indicating if it was captured before or after the trigger condition.
 ---
 ## FPGA Utilization
-  | Manufacture | Family | Device | WNS | LUT | FF
-  | --------- | --------- | --------- | --------- | --------- | --------- |
-  | Xilinx | Artix-7 | xc7a35tcpg236-1 | 4.664 | 193 | 227
-  | Altera | Cyclone IV | EP4CE10F17C8N | x | x | x
-  | Lattice | iCE40 | LP8K | x | x | x
+  | Manufacture | Family | Device | WNS | LUT | FF | Channels | Memory Depth
+  | --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- |
+  | Xilinx | Artix-7 | xc7a35tcpg236-1 | 4.664 | 193 | 227 | 8 | 8192
+  | Altera | Cyclone IV | EP4CE10F17C8N | x | x | x | x | x
+  | Lattice | iCE40 | LP8K | x | x | x | x | x
+  
 ---
 ## Installation
+* Python 3.6 or higher is required to run the GUI. Required Python packages:
+  * matplotlib
+* The FPGA development tools vary depending on the manufacture.
+  * Xilinx -> Vivado
+  * Altera -> Quartus Prime
+  * Lattice -> icestudio or Icecube2
 ---
 ## Run
+* Launch the GUI by running:
+  * ```$ python3 gui.py```
+* A guid on how to use and operate the GUI will be available once the code for it has been completed.
 ---
 ## Specifications
-* Config Format
+* Timming <br>
+Data sent back to the host PC has a relative sample time count byte. Each time unit is equal to
+  * time_unit_in_seconds = 1 / (clock_freq/sample_divisor)
+
+  The minimum and maximun sample time in seconds can be found by the following equations.
+  * min_sample_time = memory_depth / (clock_freq/sample_divisor)
+  * max sample time = (255 * memory_depth) / (clock_freq/divisor)
+* Config Format<br>
+Current settings can be saved or loaded from a ```json``` file. The following table explains what each field is and if it is required.
   | Field | Description | Default | Required |
   | --------- | --------- | --------- | --------- |
   | baud_rate   | the baud rate of the FPGA UART | 115200 | N
@@ -37,8 +68,8 @@
   | mem_depth | the depth of the memory buffer | N/A | Y
   | num_channels | the number of input channels to the FPGA | N/A | Y
 
-* Saved Capture File Format
-Several logic anaylzer settings are saved along with the captured data to a bin file. 
+* Saved Capture File Format<br>
+  Several logic anaylzer settings are saved along with the captured data to a bin file. The following table shows the byte ordering.
   | Byte | Description | 
   | --------- | --------- |
   | 1 | number of input channels |
@@ -47,11 +78,18 @@ Several logic anaylzer settings are saved along with the captured data to a bin 
   | 7-8 | the sample rate the data was captured at, stored in little-endian |
   The remaining bytes follow the next subsections format.
 
-* Captured data Transmitted to host PC
-  * First byte indicates if the following data is captured before or after the tigger condition. <br> Precapture = ```0xA``` <br> PostCapture = ```0xA3```
-  * The next byte(s) is the captured data itself. The number of bytes is given by the number of channels divided by 8.
-  * Last byte contains the count of sample clock ticks that the data remained at. The timestamps ranges are ```1-255```, if the max value has been reached and the inputs have not changed then the next continues the count from 1.
+* Captured data transmitted to host PC from the FPGA.
+  | Byte | Description | 
+  | --------- | --------- |
+  | 1 | indicates if the following data is captured before or after the tigger point <br> Precapture = ```0xA1``` <br> PostCapture = ```0xA3``` |
+  | N | The next byte(s) is the captured data. The number of bytes is given by the number of channels divided by 8 |
+  | 3 | Last byte contains the count of sample clock ticks that the data remained at. The timestamps ranges are ```1-255``` |
 
 ---
 ## Customize
----
+* In the LogicAnalyzerTop moduler are parameters that allow easy customization of the design.
+  * ```DATA_WIDTH``` This is the number of input channels to the FPGA
+  * ```MEM_DEPTH``` This is the number of rows in the memory buffer. Total bytes in the buffer is ```MEM_DEPTH``` * (```DATA_WIDTH```/8 + 1)
+* The UART requires a parameter called ```CLKS_PER_BIT```. To get the correct BAUD rate the following formula is used.
+  * ```CLKS_PER_BIT``` = (Frequency of FPGA)/(Frequency of UART)
+  * Example: <br>10 MHz Clock, 115200 baud UART <br> 10000000 / 115200 = 87
