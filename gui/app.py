@@ -1,6 +1,5 @@
 from tkinter import * 
 import matplotlib.pyplot as plt
-import numpy as np
 import matplotlib
 from matplotlib.widgets import Slider
 from matplotlib.figure import Figure 
@@ -22,19 +21,6 @@ def plot():
 	enableLogicAnalyzer(las)
 	data = readIncomingSerialData(las)
 	readInputstream(data, las)
-
-	# the figure that will contain the plot 
-	# fig = Figure(figsize = (5, 5), 
-	#              dpi = 100) 
-  
-	# # list of squares 
-	# y = [i**2 for i in range(101)] 
-  
-	# # adding the subplot 
-	# plot1 = fig.add_subplot(111) 
-  
-	# # plotting the graph 
-	# plot1.plot(y) 
 
 	fig, axs = plt.subplots(3, sharex=True, sharey=True)
 	canvas = FigureCanvasTkAgg(fig, master = window)   
@@ -76,7 +62,10 @@ def plot():
   
 # the main Tkinter window 
 window = Tk() 
-  
+mainframe = Frame(window)
+mainframe.grid(column=0, row=0, sticky=(N,W,E,S))
+mainframe.pack()
+
 # setting the title  
 window.title('Plotting in Tkinter') 
   
@@ -93,6 +82,31 @@ plot_button = Button(master = window,
 # place the button  
 # in main window 
 plot_button.pack() 
-  
+
+com_ports = StringVar(window)
+comPortMenu = OptionMenu(mainframe, com_ports, 'Select Serial Port')
+comPortMenu.grid(row=0,column=0)
+comPortMenu.configure(state='disabled')
+def show_comports(*args):
+	print(com_ports.get())
+com_ports.trace('w', show_comports)
+def show_available_com_ports(dropdown, var):
+
+	dropdown.configure(state='normal')  # Enable drop down
+	menu = dropdown['menu']
+
+	# Clear the menu.
+	menu.delete(0, 'end')
+	for name in getAvailableSerialPorts():
+		# Add menu items.
+		menu.add_command(label=name, command=lambda name=name: var.set(name))
+		# OR menu.add_command(label=name, command=partial(var.set, name))
+
+	#print(var.get())
+
+
+b = Button(mainframe, text='Refresh Serial Ports',
+		   command=lambda: show_available_com_ports(comPortMenu, com_ports))
+b.grid(column=1, row=0)
 # run the gui 
 window.mainloop() 

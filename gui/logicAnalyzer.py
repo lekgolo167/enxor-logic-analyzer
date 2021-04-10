@@ -6,7 +6,6 @@ CHANNEL_HEADER = b'\xFB'
 TRIG_TYPE_HEADER = b'\xFC'
 ENABLE_HEADER = b'\xFD'
 PRECAP_SIZE = b'\xFE'
-HOLD_HEADER = b'\xFF'
 PRE_BUFFER_HEADER = b'\xA1'
 POST_BUFFER_HEADER = b'\xA3'
 TRIGGER_RISING_ENDGE = 1
@@ -31,7 +30,6 @@ class LogicAnalyzerModel():
 		self.num_channels = 0
 		self.bytes_per_row = 0
 		self.clk_freq = 1
-		self.hold = 0
 
 	def getMaxCaptureTime(self):
 		return (MAX_TIMER_COUNT*self.mem_depth) / (self.clk_freq/self.scaler)
@@ -45,7 +43,6 @@ class LogicAnalyzerModel():
 
 			self.baud = obj.get('baud_rate', 115200)
 			self.port = obj.get('port_name', '')
-			self.hold = obj.get('hold', 0)
 			self.precap_size = obj.get('precap_size', 4)
 			self.scaler = obj.get('sample_rate', 1)
 			self.channel = obj.get('trig_channel', 0)

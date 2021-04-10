@@ -27,7 +27,6 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 1
     input i_rx,
     output o_triggered_led,
     output o_enabled,
-    output o_hold,
     output o_tx
 );
     
@@ -38,11 +37,10 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 1
     wire [7:0] w_time, w_tx_byte, w_rx_byte;
     wire [15:0] w_scaler;
     wire w_sample_clk_posedge, w_triggered_state, w_rollover, w_event, w_trig_pulse, w_rstn, w_buffer_full, w_finished_read, w_trigger_type;
-    wire w_r_ack, w_enable, w_start_read, w_t_rdy, w_tx_DV, w_rx_DV, w_tx_done, w_post_read, w_hold, w_prefilled;
+    wire w_r_ack, w_enable, w_start_read, w_t_rdy, w_tx_DV, w_rx_DV, w_tx_done, w_post_read;
     
     assign o_triggered_led = w_triggered_state;
     assign o_enabled = w_enable;
-    assign o_hold = w_hold;
     
     Reset_Sync RST(
         .i_sys_clk(i_sys_clk),
@@ -79,8 +77,6 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 1
         .i_trigger_type(w_trigger_type),
         .i_enable(w_enable),
         .i_sample_clk_posedge(w_sample_clk_posedge),
-        .i_prefilled(w_prefilled),
-        .i_hold(w_hold),
         .o_triggered_state(w_triggered_state),
         .o_event_pulse(w_event)
         );
@@ -96,7 +92,6 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 1
         .i_r_ack(w_r_ack),
         .i_start_read(w_start_read),
         .i_data({w_time, w_channels}),
-        .o_prefilled(w_prefilled),
         .o_post_read(w_post_read),
         .o_buffer_full(w_buffer_full),
         .o_finished_read(w_finished_read),
@@ -121,7 +116,6 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 1
         .o_channel_select(w_channel_select),
         .o_trigger_type(w_trigger_type),
         .o_enable(w_enable),
-        .o_hold(w_hold),
         .o_r_ack(w_r_ack),
         .o_start_read(w_start_read),
         .o_tx_DV(w_tx_DV),

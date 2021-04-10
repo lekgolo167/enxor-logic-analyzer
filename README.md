@@ -1,4 +1,4 @@
-# Enexor-Logic-Analyzer
+# Enxor-Logic-Analyzer
 ### By: Matthew Crump
 ---
 ## Contents
@@ -8,6 +8,7 @@
 4. Run
 5. Specifications
 6. Customize
+7. Known Issues
 ---
 ## Overview
 Electronic hobbyists, makers, and engineering students need low-cost and effective tools. One of these tools includes a logic analyzer for debugging digital designs. Unfortunately, there is a large gap in this market, professional grade logic analyzers start at a minimum of 400 dollars while the cheaper version is around 15 dollars but is extremely limited in functionality. There are no mid-tier options that meet the needs of the aforementioned. This project is an open-source design using FPGAs offering great performance. In addition, the design uses only Verilog source code, no IP cores or device specific features. This makes the design portable to any FPGA, you can adjust the number of input channels and memory depth very quickly. For the accompanying desktop application, Python is used to allow the GUI to work on most operating system.
@@ -25,16 +26,17 @@ This project consists of 5 major blocks to carry out a functional logic analyzer
   This block simply waits for bytes to be sent from the host PC and relays the commands to the controller block. Once the controller sends the UART block data, it preappends a header on the captured data indicating if it was captured before or after the trigger condition.
 ---
 ## FPGA Utilization
-  | Manufacture | Family | Device | WNS | LUT | FF | Channels | Memory Depth
-  | --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- |
-  | Xilinx | Artix-7 | xc7a35tcpg236-1 | 4.664 | 193 | 227 | 8 | 8192
-  | Altera | Cyclone IV | EP4CE10F17C8N | x | x | x | x | x
-  | Lattice | iCE40 | LP8K | x | x | x | x | x
+  | Manufacture | Family | Device | Frequency | WNS | LUT | FF | Channels | Memory Depth
+  | --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- |
+  | Xilinx | Artix-7 | xc7a35tcpg236-1 | 100MHz | 4.664 | 193 | 227 | 8 | 8192
+  | Altera | Cyclone IV | EP4CE10F17C8N | 50MHz | 10.729 | 404 | 238 | 8 | 8192
+  | Lattice | iCE40 | LP8K | 16MHz | x | 665 | 234 | 8 | 8192
   
 ---
 ## Installation
 * Python 3.6 or higher is required to run the GUI. Required Python packages:
   * matplotlib
+  * tkinter
 * The FPGA development tools vary depending on the manufacture.
   * Xilinx -> Vivado
   * Altera -> Quartus Prime
@@ -59,7 +61,6 @@ Current settings can be saved or loaded from a ```json``` file. The following ta
   | --------- | --------- | --------- | --------- |
   | baud_rate   | the baud rate of the FPGA UART | 115200 | N
   | port_name   | the name of the serial port, i.e. ```COM4``` or ```ttyUSB0``` | None | N
-  | hold | if ```1``` then trigger conditions are ignored until the precapture portion of the buffer has be filled completely | 0 | N
   | precap_size | number of rows in the buffer that will be used for data captured before a trigger condition | 4 | N
   | sample_scaler | number to divide the clock frequency. Sample frequency in seconds is given by 1 / (clk_freq/sample_rate) | 1 | N
   | trig_channel | the channel to watch for a trigger condition | 0 | N
@@ -93,3 +94,6 @@ Current settings can be saved or loaded from a ```json``` file. The following ta
 * The UART requires a parameter called ```CLKS_PER_BIT```. To get the correct BAUD rate the following formula is used.
   * ```CLKS_PER_BIT``` = (Frequency of FPGA)/(Frequency of UART)
   * Example: <br>10 MHz Clock, 115200 baud UART <br> 10000000 / 115200 = 87
+
+## Known Issues
+* None

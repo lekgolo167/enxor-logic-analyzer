@@ -39,9 +39,6 @@ def configureLogicAnalyzer(las):
 	# trigger type
 	ser.write(TRIG_TYPE_HEADER)
 	ser.write(bytes([las.trigger_type]))
-	# hold
-	ser.write(HOLD_HEADER)
-	ser.write(bytes([las.hold]))
 
 	ser.close
 
