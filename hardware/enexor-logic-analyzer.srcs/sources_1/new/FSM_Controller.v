@@ -67,6 +67,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
     localparam SET_TRIG_TYPE =      8'hFC;
     localparam SET_ENABLE =         8'hFD;
     localparam SET_PRECAP_DEPTH =   8'hFE;
+    localparam SET_STOP =           8'hFF;
     
     reg r_save, r_stored;
     reg [1:0] r_SM_cmd;

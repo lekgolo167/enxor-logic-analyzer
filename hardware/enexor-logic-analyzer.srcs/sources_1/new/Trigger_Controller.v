@@ -40,7 +40,7 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     assign o_event_pulse = (r_last != i_data) & i_sample_clk_posedge;
     
     always @(posedge i_sys_clk) begin
-        if (i_sample_clk_posedge) begin
+        if (i_sample_clk_posedge || !i_enable) begin
             r_last <= i_data;
         end
     end // End always

@@ -21,6 +21,7 @@ class MenuBar(Menu):
 		self.logic_analyzer = LogicAnalyzerModel()
 		self.canvas = None
 		self.multi_p = MultiPlot()
+		self.serial_thread = None
 
 		Menu.__init__(self, ws)
 
@@ -33,21 +34,19 @@ class MenuBar(Menu):
 		file.add_command(label="Exit", underline=1, command=self.quit)
 		self.add_cascade(label="File",underline=0, menu=file)
 		
-		edit = Menu(self, tearoff=0)  
-		edit.add_command(label="Start", command=self.start_capture)  
-		edit.add_command(label="Stop", command=self.stop_capture)  
-		edit.add_separator()    
-		edit.add_command(label="Save As", command=self.save_capture)  
-		edit.add_command(label="Open", command=self.open_capture)  
-		self.add_cascade(label="Capture", menu=edit) 
+		self.capture_menu = Menu(self, tearoff=0)  
+		self.capture_menu.add_command(label="Start", command=self.start_capture)  
+		self.capture_menu.add_command(label="Stop", command=self.stop_capture)  
+		self.capture_menu.add_separator()    
+		self.capture_menu.add_command(label="Save As", command=self.save_capture)  
+		self.capture_menu.add_command(label="Open", command=self.open_capture)  
+		self.add_cascade(label="Capture", menu=self.capture_menu) 
 
-		view = Menu(self, tearoff=0)
+		settings = Menu(self, tearoff=0)
 
-		ratio = Menu(self, tearoff=0, postcommand=lambda: self.refresh_serial_ports())
-		self.available_ports_menu = ratio
-		view.add_cascade(label='Ratio', menu=ratio)
-		self.add_cascade(label='View', menu=view)
-		#print(view.cget('child'))
+		self.available_ports_menu = Menu(self, tearoff=0, postcommand=lambda: self.refresh_serial_ports())
+		settings.add_cascade(label='Serial Ports', menu=self.available_ports_menu)
+		self.add_cascade(label='Settings', menu=settings)
 
 		help = Menu(self, tearoff=0)  
 		help.add_command(label="About", command=self.about)  
@@ -57,7 +56,7 @@ class MenuBar(Menu):
 		self.exit
 
 	def about(self):
-			messagebox.showinfo('PythonGuides', 'Python Guides aims at providing best practical tutorials')
+			messagebox.showinfo('Enxor Logic Analyzer', 'GitHub: https://github.com/lekgolo167/enxor-logic-analyzer')
 
 	def refresh_serial_ports(self):
 		self.available_ports_menu.delete(0, 100)
@@ -70,37 +69,45 @@ class MenuBar(Menu):
 
 	def save_configuration(self):
 		filename =  filedialog.asksaveasfilename(initialdir = "/",title = "Select file",filetypes = (("json files","*.json"),("all files","*.*")))
-		print (filename)
 
 	def open_configuration(self):
 		filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("json files","*.json"),("all files","*.*")))
-		print (filename)
 		self.logic_analyzer.initializeFromConfigFile(filename)
 
 	def save_capture(self):
 		filename =  filedialog.asksaveasfilename(initialdir = "/",title = "Select file",filetypes = (("binary files","*.bin"),("all files","*.*")))
-		print (filename)
 		writeLogicAnalyzerDataToFile(filename, self.logic_analyzer)
 
 	def open_capture(self):
 		filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("binary files","*.bin"),("all files","*.*")))
-		print (filename)
 		self.logic_analyzer = readLogicAnalyzerDataFromFile(filename)
 
 		self.add_plot_to_window(Path(filename).parts[-1])
 
+	def monitor(self):
+
+		if self.serial_thread.is_alive():
+			self.after(1000,self.monitor)
+		else:
+			if not self.serial_thread.kill:
+				self.add_plot_to_window('Enxor')
+			self.capture_menu.entryconfig(0, state='normal')
+
 	def start_capture(self):
+		self.capture_menu.entryconfig(0, state='disabled')
 
 		self.logic_analyzer.initializeFromConfigFile('./config.json')
 		configureLogicAnalyzer(self.logic_analyzer)
 		enableLogicAnalyzer(self.logic_analyzer)
-		data = readIncomingSerialData(self.logic_analyzer)
-		readInputstream(data, self.logic_analyzer)
 
-		self.add_plot_to_window('Enxor')
+		self.serial_thread = AsyncReadSerial(self.logic_analyzer)
+		self.serial_thread.start()
+		self.monitor()
 
 	def stop_capture(self):
-		pass
+		#TODO properly shutdown serial terminal and read data if any
+		self.serial_thread.kill = True
+		self.capture_menu.entryconfig(0, state='normal')
 
 	def add_plot_to_window(self, name):
 		if self.canvas != None:

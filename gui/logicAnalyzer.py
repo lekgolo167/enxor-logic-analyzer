@@ -5,6 +5,7 @@ SCALER_HEADER = b'\xFA'
 CHANNEL_HEADER = b'\xFB'
 TRIG_TYPE_HEADER = b'\xFC'
 ENABLE_HEADER = b'\xFD'
+STOP_HEADER = b'\xFF'
 PRECAP_SIZE = b'\xFE'
 PRE_BUFFER_HEADER = b'\xA1'
 POST_BUFFER_HEADER = b'\xA3'
@@ -63,11 +64,13 @@ def writeLogicAnalyzerDataToFile(file_path, la):
 	with open(file_path, 'wb') as binary_file:
 		# set 1st byte to number of channels
 		binary_file.write(bytes([la.num_channels]))
-		# set 2nd byte to the memory depth
+		# set 2nd byte to trigger channel
+		binary_file.write(bytes([la.channel]))
+		# set 3rd byte to the memory depth
 		binary_file.write(bytes([int(math.log2(la.mem_depth))]))
-		# set bytes 3 - 6 to the clock frequency
+		# set bytes 4 - 7 to the clock frequency
 		binary_file.write(la.clk_freq.to_bytes(4,byteorder='little'))
-		# set bytes 7 and 8 to the sample rate
+		# set bytes 8 and 9 to the sample rate
 		binary_file.write(la.scaler.to_bytes(2,byteorder='little'))
 
 		for entry_num in range(la.mem_depth):
@@ -93,11 +96,13 @@ def readLogicAnalyzerDataFromFile(file_path):
 		# read 1st byte to get number of channels
 		la.num_channels = ord(binary_file.read(1))
 		la.bytes_per_row = (la.num_channels // 8) + 2
-		# read 2nd byte for the memory depth
+		# read 2nd byte to get trigger channel
+		la.channel = ord(binary_file.read(1))
+		# read 3rd byte for the memory depth
 		la.mem_depth = int(math.pow(2 ,ord(binary_file.read(1))))
-		# read bytes 3 - 6 for the clock frequency
+		# read bytes 4 - 7 for the clock frequency
 		la.clk_freq = int.from_bytes(binary_file.read(4), 'little')
-		# read bytes 7 and 8 for the sample rate
+		# read bytes 8 and 9 for the sample rate
 		la.scaler = int.from_bytes(binary_file.read(2), 'little')
 
 		for x in range(la.num_channels):

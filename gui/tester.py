@@ -27,4 +27,4 @@ def testInitializeFromFile():
 		print('[Init from file ... PASS]')
 
 testInitializeFromFile()
-#readWriteFileTest()
+readWriteFileTest()

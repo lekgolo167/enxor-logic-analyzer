@@ -3,6 +3,8 @@ import sys
 import time
 import serial
 import serial.tools.list_ports
+from threading import Thread
+
 from logicAnalyzer import *
 
 
@@ -56,29 +58,51 @@ def enableLogicAnalyzer(las):
 
 	ser.close
 
-def readIncomingSerialData(las):
-	ser = serial.Serial(port=las.port, baudrate=las.baud, timeout=None,xonxoff=False)
-	ser.reset_input_buffer()
-	ser.open
-	bs = []
-	total_bytes = 0
-	# TODO add timer that cancels if limit is reached
-	while True:
-		bytesToRead = ser.inWaiting()
-		if bytesToRead > 0:
-			total_bytes += bytesToRead
-			bs.append(ser.read(bytesToRead))
-			if total_bytes == las.mem_depth*las.bytes_per_row:
-				break
+class AsyncReadSerial(Thread):
+	def __init__(self, las):
+		super().__init__()
 
-	ser.write(ENABLE_HEADER)
-	ser.write(b'\x00')
-	ser.close
-	return convertByteLists(bs)
+		self.las = las
+		self.kill = False
 
-def convertByteLists(bs):
-	combined = bs[0]
-	for x in range(1, len(bs)):
-		combined += bs[x]
+	def run(self):
+		data = self.readIncomingSerialData()
+		if data:
+			readInputstream(data, self.las)
 
-	return combined
+	def readIncomingSerialData(self):
+		ser = serial.Serial(port=self.las.port, baudrate=self.las.baud, timeout=None,xonxoff=False)
+		ser.reset_input_buffer()
+		ser.open
+		byte_chunks = []
+		total_bytes = 0
+		
+		while not self.kill:
+			bytesToRead = ser.inWaiting()
+			if bytesToRead > 0:
+				total_bytes += bytesToRead
+				byte_chunks.append(ser.read(bytesToRead))
+				if total_bytes == self.las.mem_depth*self.las.bytes_per_row:
+					break
+
+		if self.kill:
+			ser.write(STOP_HEADER)
+			ser.write(b'\x01')
+			ser.write(STOP_HEADER)
+			ser.write(b'\x00')
+
+		ser.write(ENABLE_HEADER)
+		ser.write(b'\x00')
+		ser.close
+
+		if total_bytes > 0:
+			return self.convertByteLists(byte_chunks)
+		else:
+			return None
+
+	def convertByteLists(self, byte_chunks):
+		combined = byte_chunks[0]
+		for x in range(1, len(byte_chunks)):
+			combined += byte_chunks[x]
+
+		return combined
