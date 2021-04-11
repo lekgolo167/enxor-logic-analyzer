@@ -129,6 +129,7 @@ def readLogicAnalyzerDataFromFile(file_path):
 
 def readInputstream(byte_arr, las):
 	las.channel_data = []
+	las.x_axis = []
 	las.timestamps = []
 	las.post_trigger_byte_count = 0
 	las.pre_trigger_byte_count = 0

@@ -1,13 +1,26 @@
+from pathlib import Path
+
 from tkinter import *
 from tkinter import messagebox
 from tkinter import filedialog
+
+import matplotlib.pyplot as plt
+import matplotlib
+from matplotlib.widgets import Slider
+from matplotlib.figure import Figure 
+from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,  NavigationToolbar2Tk) 
+matplotlib.use('TkAgg') 
+
 from logicAnalyzer import *
 from serialInterface import *
+from multiplots import MultiPlot
 
 class MenuBar(Menu):
 	def __init__(self, ws):
 
 		self.logic_analyzer = LogicAnalyzerModel()
+		self.canvas = None
+		self.multi_p = MultiPlot()
 
 		Menu.__init__(self, ws)
 
@@ -74,11 +87,30 @@ class MenuBar(Menu):
 		print (filename)
 		self.logic_analyzer = readLogicAnalyzerDataFromFile(filename)
 
+		self.add_plot_to_window(Path(filename).parts[-1])
+
 	def start_capture(self):
-		pass
+
+		self.logic_analyzer.initializeFromConfigFile('./config.json')
+		configureLogicAnalyzer(self.logic_analyzer)
+		enableLogicAnalyzer(self.logic_analyzer)
+		data = readIncomingSerialData(self.logic_analyzer)
+		readInputstream(data, self.logic_analyzer)
+
+		self.add_plot_to_window('Enxor')
 
 	def stop_capture(self):
 		pass
+
+	def add_plot_to_window(self, name):
+		if self.canvas != None:
+			self.canvas.get_tk_widget().pack_forget()
+			self.canvas = None
+
+		self.canvas = self.multi_p.plot_captured_data(name, self.logic_analyzer, ws)
+
+		# placing the canvas on the Tkinter window 
+		self.canvas.get_tk_widget().pack()
 
 class MenuDemo(Tk):
 	def __init__(self):
@@ -89,5 +121,5 @@ class MenuDemo(Tk):
 if __name__ == "__main__":
 	ws=MenuDemo()
 	ws.title('Enxor Logic Analyzer')
-	ws.geometry('300x200')
+	ws.geometry('700x600')
 	ws.mainloop()
