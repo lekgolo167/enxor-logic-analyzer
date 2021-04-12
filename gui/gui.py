@@ -19,23 +19,27 @@ class MenuBar(Menu):
 	def __init__(self, ws):
 
 		self.logic_analyzer = LogicAnalyzerModel()
+		self.logic_analyzer.initializeFromConfigFile('./config.json')
 		self.canvas = None
 		self.multi_p = MultiPlot()
-		self.serial_thread = None
+		self.serial_thread = AsyncReadSerial(self.logic_analyzer)
+		self.recent_configs = []
+		self.sel_port = IntVar()
 
 		Menu.__init__(self, ws)
 
 		file = Menu(self, tearoff=False)
-		file.add_command(label="New")  
+		file.add_command(label="Configuration")
+		file.add_separator()
 		file.add_command(label="Open", command=self.open_configuration)  
 		file.add_command(label="Save As", command=self.save_configuration)  
-		file.add_command(label="Save")    
+		#file.add_command(label="Save")    
 		file.add_separator()
 		file.add_command(label="Exit", underline=1, command=self.quit)
 		self.add_cascade(label="File",underline=0, menu=file)
 		
 		self.capture_menu = Menu(self, tearoff=0)  
-		self.capture_menu.add_command(label="Start", command=self.start_capture)  
+		self.capture_menu.add_command(label="Start",  command=self.start_capture)  #state='disabled',
 		self.capture_menu.add_command(label="Stop", command=self.stop_capture)  
 		self.capture_menu.add_separator()    
 		self.capture_menu.add_command(label="Save As", command=self.save_capture)  
@@ -60,8 +64,14 @@ class MenuBar(Menu):
 
 	def refresh_serial_ports(self):
 		self.available_ports_menu.delete(0, 100)
+		port_num = 0
 		for port_name in getAvailableSerialPorts():
-			self.available_ports_menu.add_command(label=port_name, command=lambda x=port_name: self.set_serial_port(x))
+				self.available_ports_menu.add_radiobutton(label=port_name, variable=self.sel_port, value=port_num, command=lambda x=port_name: self.set_serial_port(x))
+				port_num +=1
+		try:
+			self.sel_port.set(self.available_ports_menu.index(self.logic_analyzer.port))
+		except:
+			pass
 
 	def set_serial_port(self, name):
 		print("Selected port: "+name)
@@ -69,10 +79,19 @@ class MenuBar(Menu):
 
 	def save_configuration(self):
 		filename =  filedialog.asksaveasfilename(initialdir = "/",title = "Select file",filetypes = (("json files","*.json"),("all files","*.*")))
+		if filename != "":
+			self.logic_analyzer.saveToConfigFile(filename)
 
 	def open_configuration(self):
 		filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("json files","*.json"),("all files","*.*")))
-		self.logic_analyzer.initializeFromConfigFile(filename)
+		valid = None
+		if filename != "":
+			valid = self.logic_analyzer.initializeFromConfigFile(filename)
+		if valid == False:
+			self.capture_menu.entryconfig(0, state='disabled')
+			messagebox.showinfo('Invalid Configuration', "The following fields are required: 'mem_depth', 'clk_freq', 'num_channels")
+		elif valid == True:
+			self.capture_menu.entryconfig(0, state='normal')
 
 	def save_capture(self):
 		filename =  filedialog.asksaveasfilename(initialdir = "/",title = "Select file",filetypes = (("binary files","*.bin"),("all files","*.*")))
@@ -96,7 +115,6 @@ class MenuBar(Menu):
 	def start_capture(self):
 		self.capture_menu.entryconfig(0, state='disabled')
 
-		self.logic_analyzer.initializeFromConfigFile('./config.json')
 		configureLogicAnalyzer(self.logic_analyzer)
 		enableLogicAnalyzer(self.logic_analyzer)
 
@@ -128,5 +146,5 @@ class MenuDemo(Tk):
 if __name__ == "__main__":
 	ws=MenuDemo()
 	ws.title('Enxor Logic Analyzer')
-	ws.geometry('700x600')
+	ws.geometry('900x800')
 	ws.mainloop()

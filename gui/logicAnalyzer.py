@@ -57,6 +57,21 @@ class LogicAnalyzerModel():
 				return False
 
 			return True
+
+	def saveToConfigFile(self, file_path):
+		with open(file_path, 'w') as config_file:
+			text = {
+				"baud_rate" : self.baud,
+				"port_name" : self.port,
+				"clk_freq" : self.clk_freq,
+				"mem_depth" : self.mem_depth,
+				"precap_size" : self.precap_size,
+				"sample_rate" : self.scaler,
+				"trig_channel" : self.channel,
+				"trig_type" : self.trigger_type,
+				"num_channels" : self.num_channels
+			}
+			json.dump(text,config_file)
 			
 
 def writeLogicAnalyzerDataToFile(file_path, la):

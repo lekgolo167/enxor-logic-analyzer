@@ -7,6 +7,5 @@
 	"sample_rate" : 238,
 	"trig_channel" : 0,
 	"trig_type" : 1,
-	"num_channels" : 8,
-	"hold" : 0
+	"num_channels" : 8
 }
