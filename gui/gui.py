@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from tkinter import *
+import tkinter as tk
+#from tkinter import *
 from tkinter import messagebox
 from tkinter import filedialog
 
@@ -15,7 +16,7 @@ from logicAnalyzer import *
 from serialInterface import *
 from multiplots import MultiPlot
 
-class MenuBar(Menu):
+class MenuBar(tk.Menu):
 	def __init__(self, ws):
 
 		self.logic_analyzer = LogicAnalyzerModel()
@@ -24,11 +25,12 @@ class MenuBar(Menu):
 		self.multi_p = MultiPlot()
 		self.serial_thread = AsyncReadSerial(self.logic_analyzer)
 		self.recent_configs = []
-		self.sel_port = IntVar()
+		self.sel_port = tk.IntVar()
+		self.fmc = None
 
-		Menu.__init__(self, ws)
+		tk.Menu.__init__(self, ws)
 
-		file = Menu(self, tearoff=False)
+		file = tk.Menu(self, tearoff=False)
 		file.add_command(label="Configuration")
 		file.add_separator()
 		file.add_command(label="Open", command=self.open_configuration)  
@@ -38,7 +40,7 @@ class MenuBar(Menu):
 		file.add_command(label="Exit", underline=1, command=self.quit)
 		self.add_cascade(label="File",underline=0, menu=file)
 		
-		self.capture_menu = Menu(self, tearoff=0)  
+		self.capture_menu = tk.Menu(self, tearoff=0)  
 		self.capture_menu.add_command(label="Start",  command=self.start_capture)  #state='disabled',
 		self.capture_menu.add_command(label="Stop", command=self.stop_capture)  
 		self.capture_menu.add_separator()    
@@ -46,13 +48,13 @@ class MenuBar(Menu):
 		self.capture_menu.add_command(label="Open", command=self.open_capture)  
 		self.add_cascade(label="Capture", menu=self.capture_menu) 
 
-		settings = Menu(self, tearoff=0)
+		settings = tk.Menu(self, tearoff=0)
 
-		self.available_ports_menu = Menu(self, tearoff=0, postcommand=lambda: self.refresh_serial_ports())
+		self.available_ports_menu = tk.Menu(self, tearoff=0, postcommand=lambda: self.refresh_serial_ports())
 		settings.add_cascade(label='Serial Ports', menu=self.available_ports_menu)
 		self.add_cascade(label='Settings', menu=settings)
 
-		help = Menu(self, tearoff=0)  
+		help = tk.Menu(self, tearoff=0)  
 		help.add_command(label="About", command=self.about)  
 		self.add_cascade(label="Help", menu=help)  
 
@@ -132,16 +134,56 @@ class MenuBar(Menu):
 			self.canvas.get_tk_widget().pack_forget()
 			self.canvas = None
 
-		self.canvas = self.multi_p.plot_captured_data(name, self.logic_analyzer, ws)
+		self.canvas = self.multi_p.plot_captured_data(name, self.logic_analyzer, self.fmc)
 
 		# placing the canvas on the Tkinter window 
 		self.canvas.get_tk_widget().pack()
 
-class MenuDemo(Tk):
+class MenuDemo(tk.Tk):
 	def __init__(self):
-		Tk.__init__(self)
-		menubar = MenuBar(self)
-		self.config(menu=menubar)
+		tk.Tk.__init__(self)
+		self.menubar = MenuBar(self)
+		self.config(menu=self.menubar)
+		
+		self.grid_rowconfigure(0, weight=1)
+		self.grid_rowconfigure(1, weight=20)
+		self.grid_rowconfigure(2, weight=1)
+		self.grid_columnconfigure(0, weight=1)
+
+		self.create_header_frame()
+		self.create_waveform_window()
+		self.create_footer_frame()
+
+	def create_header_frame(self):
+			
+		header = tk.Frame(self)
+		header.grid(sticky='new', row=0, column=0)
+
+		label1 = tk.Label(header, text="Label 1", fg="green")
+		label1.grid(row=0, column=0, pady=(5, 0), sticky='nw')
+
+		label2 = tk.Label(header, text="Label 2", fg="blue")
+		label2.grid(row=0, column=1, pady=(5, 0), sticky='nw')
+
+	def create_waveform_window(self):
+
+		body = tk.Frame(self, bg='white')
+
+		waveform_frame = tk.Canvas(body, bg="grey")
+		waveform_frame.pack(fill='both', expand=True)
+
+
+		self.menubar.fmc = waveform_frame
+
+		body.grid(row=1, column=0, sticky='nsew', padx=5, pady=5)
+
+	def create_footer_frame(self):
+
+		footer = tk.Frame(self)
+		footer.grid(sticky='sew', row=2, column=0)
+
+		label3 = tk.Label(footer, text="Label 3", fg="red")
+		label3.grid(row=0, column=0, pady=5, sticky='nw')
 
 if __name__ == "__main__":
 	ws=MenuDemo()

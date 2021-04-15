@@ -80,7 +80,7 @@ class MultiPlot():
 		trigger_point = las.x_axis[las.pre_trigger_byte_count-1]
 
 		canvas = FigureCanvasTkAgg(fig, master=ws)
-		canvas.get_tk_widget().pack(fill='both', expand=True)
+		canvas.get_tk_widget().pack(side='top',fill='both', expand=True)
 
 		axs[las.channel].axvline(x=trigger_point, color='red', linestyle ="--", linewidth=4)
 		fig.suptitle('Source: ' + name)
