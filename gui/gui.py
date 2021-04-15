@@ -17,12 +17,12 @@ from serialInterface import *
 from multiplots import MultiPlot
 
 class MenuBar(tk.Menu):
-	def __init__(self, ws):
+	def __init__(self, ws, time_measurement_strvar, la):
 
-		self.logic_analyzer = LogicAnalyzerModel()
-		self.logic_analyzer.initializeFromConfigFile('./config.json')
+		self.logic_analyzer = la
+		#self.logic_analyzer.initializeFromConfigFile('./config.json')
 		self.canvas = None
-		self.multi_p = MultiPlot()
+		self.multi_p = MultiPlot(time_measurement_strvar)
 		self.serial_thread = AsyncReadSerial(self.logic_analyzer)
 		self.recent_configs = []
 		self.sel_port = tk.IntVar()
@@ -139,10 +139,32 @@ class MenuBar(tk.Menu):
 		# placing the canvas on the Tkinter window 
 		self.canvas.get_tk_widget().pack()
 
-class MenuDemo(tk.Tk):
+class EnxorGui(tk.Tk):
 	def __init__(self):
 		tk.Tk.__init__(self)
-		self.menubar = MenuBar(self)
+
+		self.logic_analyzer = LogicAnalyzerModel()
+		self.logic_analyzer.initializeFromConfigFile('./config.json')
+
+		self.time_measurement = tk.StringVar(value='---')
+		self.samples = [1,2,5,10,50,100,250,500,1000]
+		self.sample_divisors = [self.logic_analyzer.getMinMaxString(x) for x in self.samples]
+		self.sample_divisor = tk.StringVar(value=self.sample_divisors[0])
+		self.sample_divisor.trace('w', self.sample_rate_dropdown)
+
+		self.precapture_percentages = [str(x)+" %" for x in range(10,100, 10)]
+		self.precapture_size = tk.StringVar(value=self.precapture_percentages[0])
+		self.precapture_size.trace('w', self.precapture_percentages_dropdown)
+
+		self.trigger_channels = [x for x in range(1, 9)]
+		self.trigger_channel = tk.IntVar(value=self.trigger_channels[0])
+		self.trigger_channel.trace('w', self.trigger_channel_dropdown)
+
+		self.trigger_types = ['Falling', 'Rising']
+		self.trigger_type = tk.StringVar(value=self.trigger_types[1])
+		self.trigger_type.trace('w', self.trigger_type_dropdown)
+
+		self.menubar = MenuBar(self, self.time_measurement, self.logic_analyzer)
 		self.config(menu=self.menubar)
 		
 		self.grid_rowconfigure(0, weight=1)
@@ -154,16 +176,44 @@ class MenuDemo(tk.Tk):
 		self.create_waveform_window()
 		self.create_footer_frame()
 
+	def sample_rate_dropdown(self, *args):
+		index = self.sample_divisors.index(self.sample_divisor.get())
+		self.menubar.logic_analyzer.scaler = self.samples[index]
+
+	def precapture_percentages_dropdown(self, *args):
+		percentage = (self.precapture_percentages.index(self.precapture_size.get()) + 1) * 0.1
+		self.menubar.logic_analyzer.precap_size = int(self.menubar.logic_analyzer.mem_depth * percentage)
+
+	def trigger_channel_dropdown(self, *args):
+		self.menubar.logic_analyzer.channel = self.trigger_channels.index(self.trigger_channel.get())
+
+	def trigger_type_dropdown(self, *args):
+		self.menubar.logic_analyzer.trigger_type = self.trigger_types.index(self.trigger_type.get())
+
 	def create_header_frame(self):
 			
 		header = tk.Frame(self)
 		header.grid(sticky='new', row=0, column=0)
 
-		label1 = tk.Label(header, text="Label 1", fg="green")
-		label1.grid(row=0, column=0, pady=(5, 0), sticky='nw')
+		trigger_channel_label = tk.Label(header, text="Trigger Channel")
+		trigger_channel_label.grid(row=0, column=0, pady=(5, 0), sticky='nw')
+		trigger_channel_entry = tk.OptionMenu(header, self.trigger_channel, *self.trigger_channels)
+		trigger_channel_entry.grid(row=0, column=1)
 
-		label2 = tk.Label(header, text="Label 2", fg="blue")
-		label2.grid(row=0, column=1, pady=(5, 0), sticky='nw')
+		trigger_type_label = tk.Label(header, text="Trigger Type")
+		trigger_type_label.grid(row=0, column=2, pady=(5, 0), sticky='nw')
+		trigger_type_entry = tk.OptionMenu(header, self.trigger_type, *self.trigger_types)
+		trigger_type_entry.grid(row=0, column=3)
+
+		precapture_size_label = tk.Label(header, text="Precapture size")
+		precapture_size_label.grid(row=0, column=4, pady=(5, 0), sticky='nw')
+		precapture_size_entry = tk.OptionMenu(header, self.precapture_size, *self.precapture_percentages)
+		precapture_size_entry.grid(row=0, column=5)
+
+		sample_divisor_label = tk.Label(header, text="Sample Divisor")
+		sample_divisor_label.grid(row=0, column=6, pady=(5, 0), sticky='nw')
+		sample_divisor_entry = tk.OptionMenu(header, self.sample_divisor, *self.sample_divisors)
+		sample_divisor_entry.grid(row=0, column=7)
 
 	def create_waveform_window(self):
 
@@ -182,11 +232,11 @@ class MenuDemo(tk.Tk):
 		footer = tk.Frame(self)
 		footer.grid(sticky='sew', row=2, column=0)
 
-		label3 = tk.Label(footer, text="Label 3", fg="red")
-		label3.grid(row=0, column=0, pady=5, sticky='nw')
+		time_label = tk.Label(footer, textvariable=self.time_measurement, font='Helvetica 18 bold')
+		time_label.grid(row=0, column=0, pady=5, padx=5, sticky='nw')
 
 if __name__ == "__main__":
-	ws=MenuDemo()
+	ws=EnxorGui()
 	ws.title('Enxor Logic Analyzer')
 	ws.geometry('900x800')
 	ws.mainloop()

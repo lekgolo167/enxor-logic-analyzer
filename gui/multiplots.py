@@ -3,7 +3,7 @@ from matplotlib.widgets import Slider
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,  NavigationToolbar2Tk) 
 
 class MultiPlot():
-	def __init__(self):
+	def __init__(self, time_measurement_strvar):
 		self.zoom_level = 0
 		self.is_first_coord = True
 		self.x1 = 0.0
@@ -14,6 +14,7 @@ class MultiPlot():
 		self.fig = None
 		self.axs = None
 		self.spos = None
+		self.time_measurement_strvar = time_measurement_strvar
 
 	def update(self, val):
 		try:
@@ -30,9 +31,9 @@ class MultiPlot():
 
 	def zoom(self, event):
 		if event.button == 'up': # IN
-			self.zoom_level = self.zoom_level * 0.8
+			self.zoom_level = self.zoom_level * 0.9
 		elif event.button == 'down': # OUT
-			self.zoom_level = self.zoom_level * 1.2
+			self.zoom_level = self.zoom_level * 1.1
 		else:
 			self.zoom_level = self.total_time_units
 		
@@ -59,7 +60,7 @@ class MultiPlot():
 				while int(seconds) == 0 or units >= len(unit_names):
 					seconds *= 1000
 					units += 1
-				print('{:.2f}'.format(seconds) + unit_names[units])
+				self.time_measurement_strvar.set('{:.2f}'.format(seconds) + unit_names[units])
 		except Exception as e:
 			print(e)
 			print('ERROR - failed to convert time')
@@ -70,7 +71,7 @@ class MultiPlot():
 	def plot_captured_data(self, name, las, ws):
 
 		self.zoom_level = las.total_time_units
-		self.to_Seconds = las.getSamplesIntervalInSeconds()
+		self.to_Seconds = las.getSamplesIntervalInSeconds(las.scaler)
 		self.num_channels = las.num_channels
 		self.total_time_units = las.total_time_units
 

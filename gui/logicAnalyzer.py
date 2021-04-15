@@ -32,11 +32,30 @@ class LogicAnalyzerModel():
 		self.bytes_per_row = 0
 		self.clk_freq = 1
 
-	def getMaxCaptureTime(self):
-		return (MAX_TIMER_COUNT*self.mem_depth) / (self.clk_freq/self.scaler)
+	def getMaxCaptureTime(self, divisor):
+		return (MAX_TIMER_COUNT*self.mem_depth) / (self.clk_freq/divisor)
 
-	def getSamplesIntervalInSeconds(self):
-		return 1 / (self.clk_freq / self.scaler)
+	def getMinCaptureTime(self, divisor):
+		return (self.mem_depth) / (self.clk_freq/divisor)
+
+	def getSamplesIntervalInSeconds(self, divisor):
+		return 1 / (self.clk_freq / divisor)
+
+	def convertSecToRelaventTime(self, seconds):
+
+		units = 0
+		unit_names = [' s', ' ms', ' us', ' ns']
+		while int(seconds) == 0 or units >= len(unit_names):
+			seconds *= 1000
+			units += 1
+		return '{:.2f}'.format(seconds) + unit_names[units]
+
+	def getMinMaxString(self, divisor):
+		_min = self.getMinCaptureTime(divisor)
+		_max = self.getMaxCaptureTime(divisor)
+		_rate = self.getSamplesIntervalInSeconds(divisor)
+
+		return self.convertSecToRelaventTime(_rate) + " : " + self.convertSecToRelaventTime(_min) + " - " + self.convertSecToRelaventTime(_max)
 
 	def initializeFromConfigFile(self, file_path):
 		with open(file_path, 'r') as config_file:
