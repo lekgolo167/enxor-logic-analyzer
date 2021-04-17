@@ -1,0 +1,9 @@
+{signal: [
+  {name: 'clk', wave: 'p..........|....'},
+  {name: 'enable', wave: '01.........|....'},
+  {name: 'incr', wave: '0..10.10.10|.10.'},
+  {name: 'event', wave: '0.....10...|....'},
+  {},
+  {name: 'rollover', wave: '0..........|.10.'},
+  {name: 'time', wave: 'x3..4..5..6|8.9.', data:['0x01', '0x02', '0x01', '0x02', '0xFF', '0x01']}
+]}
