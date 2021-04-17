@@ -1,0 +1,8 @@
+{signal: [
+  {name: 'clk', wave: 'p........'},
+  {name: 'enable', wave: '0.1.....0'},
+  {name: 'scaler', wave: 'x3.......', data:['0x02']},
+  {name: 'count', wave: '2..345678', data: ['0x00', '0x01', '0x02', '0x00','0x01','0x02', '0x00']},
+  {},
+  {name: 'sample_pulse', wave: '0...10.10'}
+]}
