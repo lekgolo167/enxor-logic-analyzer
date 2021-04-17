@@ -8,22 +8,24 @@
 4. Run
 5. Specifications
 6. Customize
-7. Known Issues
+7. Potential Enhancements
+8. Known Issues
 ---
 ## Overview
 Electronic hobbyists, makers, and engineering students need low-cost and effective tools. One of these tools includes a logic analyzer for debugging digital designs. Unfortunately, there is a large gap in this market, professional grade logic analyzers start at a minimum of 400 dollars while the cheaper version is around 15 dollars but is extremely limited in functionality. There are no mid-tier options that meet the needs of the aforementioned. This project is an open-source design using FPGAs offering great performance. In addition, the design uses only Verilog source code, no IP cores or device specific features. This makes the design portable to any FPGA, you can adjust the number of input channels and memory depth very quickly. For the accompanying desktop application, Python is used to allow the GUI to work on most operating system.
 
 This project consists of 5 major blocks to carry out a functional logic analyzer: a trigger controller, sample rate counter, memory buffer, control module, and UART communication.
 * Trigger Controller<br>
-  This module is set to wait for a trigger condition on a user configureable channel. That condition can be either a falling or rising edge and is set in the GUI. A sample rate signal is used to tell the trigger controller when to shift new data in. If the new data data does not match the old data then a event signal is sent out to other blocks. Once the trigger condition occurs, a triggered state signal is sent to the memory buffer. 
+  This module is set to wait for a trigger condition on a user configurable channel. That condition can be either a falling or rising edge and is set in the GUI. A sample rate signal is used to tell the trigger controller when to shift new data in. If the new data does not match the old data then an event signal is sent out to other blocks. Once the trigger condition occurs, a triggered state signal is sent to the memory buffer.
+  ![Trigger Controller Waveform Image](./documentation/images/trigger_controller_1.png)
 * Sample Rate Counter<br>
-  This system takes in a 16-bit divisor that tells the logic analyzer what the sample frequency is. Another counter is incremented at every sample clock to keep track of the relative time between events. If an event occurrs the counter is reset to 1 and resumes counting. If the counter overflows then it signals the memory controller to fill in a new row.
+  This system takes in a 16-bit divisor that tells the logic analyzer what the sample frequency is. Another counter is incremented at every sample clock to keep track of the relative time between events. If an event occurs the counter is reset to 1 and resumes counting. If the counter overflows, then it signals the memory controller to fill in a new row.
 * Memory Buffer<br>
-  The memory buffer combines the timestamp and data storing it in RAM. Each time it receives a event or timestamp rollover signal a new row in the buffer is filled. Before a trigger condition occurs, this block behaves as a circular buffer continually overwritting entries. Once a trigger condition occurs the buffer acts as a FIFO and fills all the way up. The buffer has a precapture size setting to control the ratio of data that is saved before and after a trigger condition. Once full, the controller module is signaled and data is read out row by row.
+  The memory buffer combines the timestamp and data storing it in RAM. Each time it receives a event or timestamp rollover signal a new row in the buffer is filled. Before a trigger condition occurs, this block behaves as a circular buffer, continually overwriting previous entries. Once a trigger condition occurs the buffer acts as a FIFO and fills all the way up. The buffer has a precapture size setting to control the ratio of data that is saved before and after a trigger condition. Once full, the controller module is signaled, and data is read out row by row.
 * Controller<br>
   This block waits for commands to be received from the host computer and saves the commands to control registers. Once the enable command is received, the controller waits for the memory buffer to fill up. Then the data is read out of the buffer and converted from its original width to a width of one byte to be sent off to the UART block.
 * UART Communication<br>
-  This block simply waits for bytes to be sent from the host PC and relays the commands to the controller block. Once the controller sends the UART block data, it preappends a header on the captured data indicating if it was captured before or after the trigger condition.
+  This block simply waits for bytes to be sent from the host PC and relays the commands to the controller block. Once the controller sends the UART block data, it prepends  a header on the captured data indicating if it was captured before or after the trigger condition.
 ---
 ## FPGA Utilization
   | Manufacture | Family | Device | Frequency | WNS | LUT | FF | Channels | Memory Depth
@@ -95,5 +97,9 @@ Current settings can be saved or loaded from a ```json``` file. The following ta
   * ```CLKS_PER_BIT``` = (Frequency of FPGA)/(Frequency of UART)
   * Example: <br>10 MHz Clock, 115200 baud UART <br> 10000000 / 115200 = 87
 
+## Potenital enhancements
+* Add a small soft-core processor to make communicating with the host PC easier and more flexible.
+
 ## Known Issues
-* None
+* If a trigger condition occurs within microseconds after being enabled, the gui cannot get the serial port open intime to catch all the data.
+  * Potential fix: have Enxor signal the host PC that the buffer is full then wait for a read command before sending captured data.

@@ -183,6 +183,7 @@ class EnxorGui(tk.Tk):
 	def precapture_percentages_dropdown(self, *args):
 		percentage = (self.precapture_percentages.index(self.precapture_size.get()) + 1) * 0.1
 		self.menubar.logic_analyzer.precap_size = int(self.menubar.logic_analyzer.mem_depth * percentage)
+		print(self.menubar.logic_analyzer.precap_size)
 
 	def trigger_channel_dropdown(self, *args):
 		self.menubar.logic_analyzer.channel = self.trigger_channels.index(self.trigger_channel.get())
@@ -210,7 +211,7 @@ class EnxorGui(tk.Tk):
 		precapture_size_entry = tk.OptionMenu(header, self.precapture_size, *self.precapture_percentages)
 		precapture_size_entry.grid(row=0, column=5)
 
-		sample_divisor_label = tk.Label(header, text="Sample Divisor")
+		sample_divisor_label = tk.Label(header, text="Sample Rate")
 		sample_divisor_label.grid(row=0, column=6, pady=(5, 0), sticky='nw')
 		sample_divisor_entry = tk.OptionMenu(header, self.sample_divisor, *self.sample_divisors)
 		sample_divisor_entry.grid(row=0, column=7)

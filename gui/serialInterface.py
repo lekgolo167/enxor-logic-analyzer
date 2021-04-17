@@ -50,11 +50,11 @@ def enableLogicAnalyzer(las):
 	ser.reset_input_buffer()
 	ser.open
 
-	ser.write(ENABLE_HEADER)
-	ser.write(b'\x00')
+	# ser.write(ENABLE_HEADER)
+	# ser.write(b'\x00')
 
-	ser.write(ENABLE_HEADER)
-	ser.write(b'\x01')
+	# ser.write(ENABLE_HEADER)
+	# ser.write(b'\x01')
 
 	ser.close
 
@@ -74,6 +74,11 @@ class AsyncReadSerial(Thread):
 		ser = serial.Serial(port=self.las.port, baudrate=self.las.baud, timeout=None,xonxoff=False)
 		ser.reset_input_buffer()
 		ser.open
+		ser.write(ENABLE_HEADER)
+		ser.write(b'\x00')
+
+		ser.write(ENABLE_HEADER)
+		ser.write(b'\x01')
 		byte_chunks = []
 		total_bytes = 0
 		

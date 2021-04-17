@@ -35,10 +35,8 @@ module Trigger_Controller_tb;
         .i_channel_select(channel_select),
         .i_trigger_type(trig_type),
         .i_enable(enable),
-        .i_rstn(rst),
         .i_sys_clk(clk),
         .i_sample_clk_posedge(sample_clk_posedge),
-        .o_trigger_pulse(w_trigger_pulse),
         .o_triggered_state(w_triggered_state),
         .o_event_pulse(w_event_pulse)
     );
@@ -60,7 +58,7 @@ module Trigger_Controller_tb;
     
     always @(posedge clk) begin
         count <= count + 1;
-        if(count % 5 == 0) begin
+        if(count % 3 == 0) begin
             sample_clk_posedge <= 1;
         end
         else begin

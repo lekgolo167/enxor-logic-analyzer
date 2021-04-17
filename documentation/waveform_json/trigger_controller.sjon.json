@@ -1,0 +1,13 @@
+{signal: [
+  {name: 'clk', wave: 'p..............'},
+  {name: 'enable', wave: '0...1..........'},
+  {name: 'trigger_type', wave: 'x1.............'},
+  {name: 'channel', wave: 'x5.............', data: ['0x01']},
+  {name: 'sample_clk', wave: '0.....10.10.10.'},
+  {name: 'last', wave: 'x3456..8.....9.', data: ['0x03', '0x02', '0x2', '0x3','0x01','0x3']},
+  {name: 'ch 0', wave: '10.1.01........'},
+  {name: 'ch 1', wave: '1...0...10..1..'},
+  {},
+  {name: 'event', wave: '0.....10....10.'},
+  {name: 'triggered', wave: '0............1.'}
+]}
