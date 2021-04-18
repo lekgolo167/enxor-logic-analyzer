@@ -39,6 +39,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
     output reg o_enable,
     output o_r_ack,
     output reg o_start_read,
+    output reg o_stop,
     output o_tx_DV,
     output [7:0] o_tx_byte
     );
@@ -114,6 +115,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
             o_trigger_type <= 0;
             o_enable <= 0;
             r_start_read <= 0;
+            o_stop <= 0;
         end 
         else begin
             r_stored <= 0;
@@ -142,6 +144,10 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
                     SET_ENABLE:
                         begin
                             o_enable <= paramByte[0];
+                        end
+                    SET_STOP:
+                        begin
+                            o_stop <= paramByte[0];
                         end
                 endcase
             end

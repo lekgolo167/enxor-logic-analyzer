@@ -19,12 +19,12 @@ MAX_TIMER_COUNT = 256
 class LogicAnalyzerModel():
 	def __init__(self):
 		self.port = ''
-		self.baud = 0
+		self.baud = 115200
 		self.scaler = 1
 		self.channel = 0
-		self.trigger_type = 1
+		self.trigger_type = TRIGGER_RISING_ENDGE
 		self.mem_depth = 0
-		self.precap_size = 0
+		self.precap_size = 4
 		self.pre_trigger_byte_count = 0
 		self.post_trigger_byte_count = 0
 		self.total_time_units = 0
@@ -64,12 +64,12 @@ class LogicAnalyzerModel():
 		with open(file_path, 'r') as config_file:
 			obj = json.loads(config_file.read())
 
-			self.baud = obj.get('baud_rate', 115200)
-			self.port = obj.get('port_name', '')
-			self.precap_size = obj.get('precap_size', 4)
-			self.scaler = obj.get('sample_rate', 1)
-			self.channel = obj.get('trig_channel', 0)
-			self.trigger_type = obj.get('trig_type', 1)
+			self.baud = obj.get('baud_rate', self.baud)
+			self.port = obj.get('port_name', self.port)
+			self.precap_size = obj.get('precap_size', self.precap_size)
+			self.scaler = obj.get('sample_rate', self.scaler)
+			self.channel = obj.get('trig_channel', self.channel)
+			self.trigger_type = obj.get('trig_type', self.trigger_type)
 			try:
 				self.mem_depth = obj['mem_depth']
 				self.clk_freq = obj['clk_freq']
@@ -154,6 +154,9 @@ def readLogicAnalyzerDataFromFile(file_path):
 				la.pre_trigger_byte_count += 1
 			elif byte_header == POST_BUFFER_HEADER:
 				la.post_trigger_byte_count += 1
+			else:
+				# This will realign the bytes to get correct offset
+				continue
 
 			for offset in range(0, (la.num_channels // 8), 8):
 				current_byte = binary_file.read(1)
@@ -177,11 +180,11 @@ def readInputstream(byte_arr, las):
 	las.pre_trigger_byte_count = 0
 	las.total_time_units = 0
 
-	for x in range(las.num_channels):
+	for _ in range(las.num_channels):
 		las.channel_data.append([])
 
 	entry_num = 0
-	while entry_num < (las.mem_depth*las.bytes_per_row):
+	while entry_num < len(byte_arr) - 2:
 		byte_header = byte_arr[entry_num]
 		entry_num += 1
 
@@ -191,6 +194,9 @@ def readInputstream(byte_arr, las):
 			las.pre_trigger_byte_count += 1
 		elif byte_header == ord(POST_BUFFER_HEADER):
 			las.post_trigger_byte_count += 1
+		else:
+			# This will realign the bytes to get correct offset
+			continue
 
 		for offset in range(0, (las.num_channels // 8), 8):
 			current_byte = byte_arr[entry_num]

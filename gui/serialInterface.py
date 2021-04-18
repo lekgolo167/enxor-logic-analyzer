@@ -85,9 +85,9 @@ class AsyncReadSerial(Thread):
 
 		byte_chunks = []
 
-		while not self.full or not self.triggered:
+		while (not self.full or not self.triggered) and not self.kill:
 			bytesToRead = ser.inWaiting()
-			#print(bytesToRead)
+
 			if bytesToRead >= 2:
 				print("TRIGGERED & DONE")
 				self.full = True
@@ -97,34 +97,44 @@ class AsyncReadSerial(Thread):
 
 			elif bytesToRead == 1:
 				b = ser.read(bytesToRead)
+
 				if b == TRIGGERED_STATE_HEADER:
 					print("TRIGGERED")
 					self.triggered = True
-
 				elif b == DONE_HEADER:
 					print("DONE")
 					self.done = True
-
 					break
 				else:
 					print("ERROR -- RECEIVED UNEXPECTED BYTE")
-
-		ser.write(START_READ_HEADER)
-		ser.write(b'\x01')
-
-		while not self.kill:
-			bytesToRead = ser.inWaiting()
-			if bytesToRead > 0:
-				self.total_bytes += bytesToRead
-				byte_chunks.append(ser.read(bytesToRead))
-				if self.total_bytes >= self.las.mem_depth*self.las.bytes_per_row:
 					break
 
 		if self.kill:
+			print("STOPPING")
 			ser.write(STOP_HEADER)
 			ser.write(b'\x01')
 			ser.write(STOP_HEADER)
 			ser.write(b'\x00')
+		
+		max_time =  ((1 / self.las.baud) * self.las.mem_depth * self.las.bytes_per_row*8)+3.0
+		timeout = time.time() + max_time
+
+		if self.triggered:
+			ser.write(START_READ_HEADER)
+			ser.write(b'\x01')
+		else:
+			ser.write(ENABLE_HEADER)
+			ser.write(b'\x00')
+			print("NO DATA")
+			return None
+
+		while timeout > time.time():
+			bytesToRead = ser.inWaiting()
+			if bytesToRead > 0:
+				self.total_bytes += bytesToRead
+				byte_chunks.append(ser.read(bytesToRead))
+				if (self.total_bytes >= self.las.mem_depth*self.las.bytes_per_row):
+					break
 
 		ser.write(START_READ_HEADER)
 		ser.write(b'\x00')
@@ -132,7 +142,7 @@ class AsyncReadSerial(Thread):
 		ser.write(ENABLE_HEADER)
 		ser.write(b'\x00')
 
-		ser.close
+		ser.close()
 
 		if self.total_bytes > 0:
 			return self.convertByteLists(byte_chunks)

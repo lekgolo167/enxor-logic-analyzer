@@ -27,6 +27,7 @@ class MenuBar(tk.Menu):
 		self.recent_configs = []
 		self.sel_port = tk.IntVar()
 		self.fmc = None
+		self.is_set_enxor_state = False
 
 		tk.Menu.__init__(self, ws)
 
@@ -108,12 +109,14 @@ class MenuBar(tk.Menu):
 	def monitor(self):
 
 		if self.serial_thread.is_alive():
-			if self.serial_thread.triggered:
+			if self.serial_thread.triggered and not self.is_set_enxor_state:
 				self.enxor_status_strvar.set("TRIGGERED")
-			self.after(1000,self.monitor)
+				self.is_set_enxor_state = True
+			self.after(500,self.monitor)
 		else:
+			self.is_set_enxor_state = False
 			self.enxor_status_strvar.set("READY")
-			if not self.serial_thread.kill:
+			if self.serial_thread.triggered:
 				self.add_plot_to_window('Enxor')
 			self.capture_menu.entryconfig(0, state='normal')
 
@@ -130,9 +133,9 @@ class MenuBar(tk.Menu):
 		self.monitor()
 
 	def stop_capture(self):
-		#TODO properly shutdown serial terminal and read data if any
-		self.enxor_status_strvar.set("READY")
+		self.enxor_status_strvar.set("STOPPED")
 		self.serial_thread.kill = True
+	
 		self.capture_menu.entryconfig(0, state='normal')
 
 	def add_plot_to_window(self, name):
