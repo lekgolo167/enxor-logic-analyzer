@@ -22,13 +22,14 @@
 
 module Timestamp_Counter_tb;
 
-    reg clk, rst, incr;
+    reg clk, incr, _event, enable;
     wire w_rollover;
     wire [7:0] w_time;
     
     Timestamp_Counter tsc (
         .i_sys_clk(clk),
-        .i_rstn(rst),
+        .i_enable(enable),
+        .i_event(_event),
         .i_incr(incr),
         .o_rollover(w_rollover),
         .o_time(w_time)
@@ -39,10 +40,10 @@ module Timestamp_Counter_tb;
         
     initial begin
         clk = 0;
-        rst = 0;
+        enable = 0;
         incr = 0;
-        
-        #11 rst = 1;
+        _event = 0;
+        #11 enable = 1;
     end
     
     always @(posedge clk) begin

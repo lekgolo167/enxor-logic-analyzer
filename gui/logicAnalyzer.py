@@ -176,8 +176,7 @@ def readInputstream(byte_arr, las):
 
 	for x in range(las.num_channels):
 		las.channel_data.append([])
-	print("Captured")
-	print(len(byte_arr))
+
 	entry_num = 0
 	while entry_num < (las.mem_depth*las.bytes_per_row):
 		byte_header = byte_arr[entry_num]
@@ -203,8 +202,5 @@ def readInputstream(byte_arr, las):
 		las.timestamps.append(timestamp)
 		las.total_time_units += timestamp
 		las.x_axis.append(las.total_time_units)
-	print('PRE')
-	print(las.pre_trigger_byte_count)
-	print("POST")
-	print(las.post_trigger_byte_count)
+
 	return las
