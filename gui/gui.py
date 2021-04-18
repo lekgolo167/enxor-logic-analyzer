@@ -17,10 +17,10 @@ from serialInterface import *
 from multiplots import MultiPlot
 
 class MenuBar(tk.Menu):
-	def __init__(self, ws, time_measurement_strvar, la):
+	def __init__(self, ws, time_measurement_strvar, enxor_status_strvar, la):
 
 		self.logic_analyzer = la
-		#self.logic_analyzer.initializeFromConfigFile('./config.json')
+		self.enxor_status_strvar = enxor_status_strvar
 		self.canvas = None
 		self.multi_p = MultiPlot(time_measurement_strvar)
 		self.serial_thread = AsyncReadSerial(self.logic_analyzer)
@@ -108,8 +108,11 @@ class MenuBar(tk.Menu):
 	def monitor(self):
 
 		if self.serial_thread.is_alive():
+			if self.serial_thread.triggered:
+				self.enxor_status_strvar.set("TRIGGERED")
 			self.after(1000,self.monitor)
 		else:
+			self.enxor_status_strvar.set("READY")
 			if not self.serial_thread.kill:
 				self.add_plot_to_window('Enxor')
 			self.capture_menu.entryconfig(0, state='normal')
@@ -120,12 +123,15 @@ class MenuBar(tk.Menu):
 		configureLogicAnalyzer(self.logic_analyzer)
 		enableLogicAnalyzer(self.logic_analyzer)
 
+		self.enxor_status_strvar.set("WAITING")
+		
 		self.serial_thread = AsyncReadSerial(self.logic_analyzer)
 		self.serial_thread.start()
 		self.monitor()
 
 	def stop_capture(self):
 		#TODO properly shutdown serial terminal and read data if any
+		self.enxor_status_strvar.set("READY")
 		self.serial_thread.kill = True
 		self.capture_menu.entryconfig(0, state='normal')
 
@@ -146,6 +152,8 @@ class EnxorGui(tk.Tk):
 		self.logic_analyzer = LogicAnalyzerModel()
 		self.logic_analyzer.initializeFromConfigFile('./config.json')
 
+		self.enxor_status = tk.StringVar(value='READY')
+
 		self.time_measurement = tk.StringVar(value='---')
 		self.samples = [1,2,5,10,50,100,250,500,1000]
 		self.sample_divisors = [self.logic_analyzer.getMinMaxString(x) for x in self.samples]
@@ -164,7 +172,7 @@ class EnxorGui(tk.Tk):
 		self.trigger_type = tk.StringVar(value=self.trigger_types[1])
 		self.trigger_type.trace('w', self.trigger_type_dropdown)
 
-		self.menubar = MenuBar(self, self.time_measurement, self.logic_analyzer)
+		self.menubar = MenuBar(self, self.time_measurement, self.enxor_status, self.logic_analyzer)
 		self.config(menu=self.menubar)
 		
 		self.grid_rowconfigure(0, weight=1)
@@ -235,6 +243,10 @@ class EnxorGui(tk.Tk):
 
 		time_label = tk.Label(footer, textvariable=self.time_measurement, font='Helvetica 18 bold')
 		time_label.grid(row=0, column=0, pady=5, padx=5, sticky='nw')
+		state_label = tk.Label(footer, text="STATE:")
+		state_label.grid(row=0, column=1, pady=5, padx=5, sticky='ne')
+		enxor_status_label = tk.Label(footer, textvariable=self.enxor_status)
+		enxor_status_label.grid(row=0, column=2, pady=5, padx=5, sticky='ne')
 
 if __name__ == "__main__":
 	ws=EnxorGui()

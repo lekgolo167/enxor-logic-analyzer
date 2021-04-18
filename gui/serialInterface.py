@@ -50,11 +50,15 @@ def enableLogicAnalyzer(las):
 	ser.reset_input_buffer()
 	ser.open
 
-	# ser.write(ENABLE_HEADER)
-	# ser.write(b'\x00')
+	# ensure enable is off to start to reset the logic
+	ser.write(ENABLE_HEADER)
+	ser.write(b'\x00')
+	# ensure start read is off
+	ser.write(START_READ_HEADER)
+	ser.write(b'\x00')
 
-	# ser.write(ENABLE_HEADER)
-	# ser.write(b'\x01')
+	ser.write(ENABLE_HEADER)
+	ser.write(b'\x01')
 
 	ser.close
 
@@ -64,6 +68,9 @@ class AsyncReadSerial(Thread):
 
 		self.las = las
 		self.kill = False
+		self.full = False
+		self.triggered = False
+		self.total_bytes = 0
 
 	def run(self):
 		data = self.readIncomingSerialData()
@@ -74,20 +81,43 @@ class AsyncReadSerial(Thread):
 		ser = serial.Serial(port=self.las.port, baudrate=self.las.baud, timeout=None,xonxoff=False)
 		ser.reset_input_buffer()
 		ser.open
-		ser.write(ENABLE_HEADER)
-		ser.write(b'\x00')
-
-		ser.write(ENABLE_HEADER)
-		ser.write(b'\x01')
-		byte_chunks = []
-		total_bytes = 0
 		
+
+		byte_chunks = []
+
+		while not self.full or not self.triggered:
+			bytesToRead = ser.inWaiting()
+			#print(bytesToRead)
+			if bytesToRead >= 2:
+				print("TRIGGERED & DONE")
+				self.full = True
+				self.triggered = True
+				ser.read(bytesToRead)
+				break
+
+			elif bytesToRead == 1:
+				b = ser.read(bytesToRead)
+				if b == TRIGGERED_STATE_HEADER:
+					print("TRIGGERED")
+					self.triggered = True
+
+				elif b == DONE_HEADER:
+					print("DONE")
+					self.done = True
+
+					break
+				else:
+					print("ERROR -- RECEIVED UNEXPECTED BYTE")
+
+		ser.write(START_READ_HEADER)
+		ser.write(b'\x01')
+
 		while not self.kill:
 			bytesToRead = ser.inWaiting()
 			if bytesToRead > 0:
-				total_bytes += bytesToRead
+				self.total_bytes += bytesToRead
 				byte_chunks.append(ser.read(bytesToRead))
-				if total_bytes == self.las.mem_depth*self.las.bytes_per_row:
+				if self.total_bytes >= self.las.mem_depth*self.las.bytes_per_row:
 					break
 
 		if self.kill:
@@ -96,11 +126,15 @@ class AsyncReadSerial(Thread):
 			ser.write(STOP_HEADER)
 			ser.write(b'\x00')
 
+		ser.write(START_READ_HEADER)
+		ser.write(b'\x00')
+
 		ser.write(ENABLE_HEADER)
 		ser.write(b'\x00')
+
 		ser.close
 
-		if total_bytes > 0:
+		if self.total_bytes > 0:
 			return self.convertByteLists(byte_chunks)
 		else:
 			return None

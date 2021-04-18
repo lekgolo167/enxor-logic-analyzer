@@ -53,7 +53,7 @@ module top_testbench(
          end
     endtask // UART_WRITE_BYTE
     
-    Logic_Analyzer_Top #(.DATA_WIDTH(8), .PACKET_WIDTH(16), .PRE_DEPTH(4), .POST_DEPTH(12)) LAT (
+    Logic_Analyzer_Top #(.DATA_WIDTH(8), .PACKET_WIDTH(16), .MEM_DEPTH(8192)) LAT (
         .i_sys_clk(clk),
         .i_rstn(rstn),
         .i_raw_sig(count[15:8]),
@@ -61,7 +61,7 @@ module top_testbench(
         .o_tx(tx),
         .o_triggered_led(triggered_led)
     );
-    
+    //wire buffer_full = LAT.w_buffer_full;
     always
         #2 clk = ~clk;
         
@@ -100,6 +100,13 @@ module top_testbench(
         UART_WRITE_BYTE(8'h01);
         @(posedge clk);
         
+        // send precap size command
+        UART_WRITE_BYTE(8'hFE);
+        @(posedge clk);
+        // send positive edge
+        UART_WRITE_BYTE(8'h04);
+        @(posedge clk);
+        
         // send enable command
         UART_WRITE_BYTE(8'hFD);
         @(posedge clk);
@@ -107,6 +114,14 @@ module top_testbench(
         UART_WRITE_BYTE(8'h01);
         @(posedge clk);
 
+        //@(posedge buffer_full)
+        #1000;
+        // send start read command
+        UART_WRITE_BYTE(8'hF9);
+        @(posedge clk);
+        // send enable
+        UART_WRITE_BYTE(8'h01);
+        @(posedge clk);
     end
 
     always @(posedge clk) begin

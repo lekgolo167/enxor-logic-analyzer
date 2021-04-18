@@ -62,6 +62,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
     localparam s_VALUE =    2'b01;
     localparam s_SAVE =     2'b10;
     
+    localparam SET_START_READ =     8'hF9;
     localparam SET_SCALER =         8'hFA;
     localparam SET_CHANNEL =        8'hFB;
     localparam SET_TRIG_TYPE =      8'hFC;
@@ -69,7 +70,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
     localparam SET_PRECAP_DEPTH =   8'hFE;
     localparam SET_STOP =           8'hFF;
     
-    reg r_save, r_stored;
+    reg r_save, r_stored, r_start_read;
     reg [1:0] r_SM_cmd;
     reg [7:0] commandByte;
     reg [7:0] paramByte;
@@ -112,12 +113,16 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
             o_channel_select <= 0;
             o_trigger_type <= 0;
             o_enable <= 0;
+            r_start_read <= 0;
         end 
         else begin
             r_stored <= 0;
             if (r_save && !r_stored) begin
                 r_stored <= 1;
                 case (commandByte)
+                    SET_START_READ: begin
+                        r_start_read <= paramByte[0];
+                    end
                     SET_SCALER:
                         begin
                             o_scaler <= {o_scaler[7:0], paramByte};
@@ -142,17 +147,8 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
             end
         end
     end
-    
-    always @(posedge i_sys_clk) begin
-        if (!i_rstn) begin
-            o_start_read <= 0;
-        end
-        else if (i_finished_read) begin
-            o_start_read <= 0;
-        end
-        else if(i_buffer_full) begin
-            o_start_read <= 1;
-        end
-    end
 
+    always @(posedge i_sys_clk) begin
+        o_start_read <= r_start_read & ~i_finished_read;
+    end
 endmodule

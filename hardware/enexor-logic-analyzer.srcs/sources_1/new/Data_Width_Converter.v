@@ -38,12 +38,15 @@ module Data_Width_Converter #(parameter PACKET_WIDTH = 16) (
     wire [2:0] packet_case = {i_post_read, i_buffer_full, i_triggered_state & ~i_start_read};
     reg [7:0] packet_header;
     wire [PACKET_WIDTH+8-1:0] data = {i_data, packet_header};
-    reg [1:0] byte, r_state;
+    reg [3:0] byte, r_state;
     
-    localparam WAIT = 2'b00;
-    localparam SEND = 2'b01;
-    localparam INCR = 2'b10;
-    localparam ACK = 2'b11;
+    localparam IDLE = 3'b000;
+    localparam TRIG = 3'b001;
+    localparam FULL = 3'b010;
+    localparam SEND = 3'b011;
+    localparam INCR = 3'b100;
+    localparam ACK = 3'b101;
+    localparam WAIT = 3'b110;
     
     localparam PRE_BUFF = 8'hA1;
     localparam POST_BUFF = 8'hA3;
@@ -79,17 +82,38 @@ module Data_Width_Converter #(parameter PACKET_WIDTH = 16) (
     
     always @(posedge i_clk) begin
         if (~i_enable) begin
-            r_state <= WAIT;
+            r_state <= IDLE;
         end
         else begin 
             case (r_state)
-                WAIT: begin
-                    if (i_t_rdy) begin
+                IDLE: begin
+                    if (i_triggered_state) begin
+                        r_state <= TRIG;
+                        o_tx_DV <= 1;
+                    end
+                    else begin
+                        o_tx_DV <= 0; // Move these two into the state WAIT?
+                        o_r_ack <= 0;
+                        byte <= 0;
+                    end
+                end
+                TRIG: begin
+                    if (i_buffer_full) begin // might change this to tx_active
+                        o_tx_DV <= 1;
+                        r_state <= FULL;
+                    end
+                    else if (i_tx_done) begin
+                        o_tx_DV <= 0;
+                    end
+                end
+                FULL: begin
+                    if (i_start_read) begin // might change this to tx_active
+                        o_tx_DV <= 1;
                         r_state <= SEND;
                     end
-                    o_tx_DV <= 0; // Move these two into the state WAIT?
-                    o_r_ack <= 0;
-                    byte <= 0;
+                    else if (i_tx_done)begin
+                        o_tx_DV <= 0;
+                    end
                 end
                 SEND: begin
                     if (i_tx_done) begin // might change this to tx_active
@@ -114,6 +138,16 @@ module Data_Width_Converter #(parameter PACKET_WIDTH = 16) (
                     if (!i_t_rdy) begin
                         o_r_ack <= 0;
                         r_state <= WAIT;
+                    end
+                end
+                WAIT: begin
+                    if (i_t_rdy) begin
+                        r_state <= SEND;
+                    end
+                    else begin
+                        o_tx_DV <= 0;
+                        o_r_ack <= 0;
+                        byte <= 0;
                     end
                 end
             endcase

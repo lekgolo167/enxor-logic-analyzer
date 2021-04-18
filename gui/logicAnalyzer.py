@@ -9,6 +9,9 @@ STOP_HEADER = b'\xFF'
 PRECAP_SIZE = b'\xFE'
 PRE_BUFFER_HEADER = b'\xA1'
 POST_BUFFER_HEADER = b'\xA3'
+START_READ_HEADER = b'\xF9'
+TRIGGERED_STATE_HEADER = b'\xA7'
+DONE_HEADER = b'\xAF'
 TRIGGER_RISING_ENDGE = 1
 TRIGGER_FALLING_ENDGE = 0
 MAX_TIMER_COUNT = 256
@@ -203,4 +206,6 @@ def readInputstream(byte_arr, las):
 		las.total_time_units += timestamp
 		las.x_axis.append(las.total_time_units)
 
+	print(las.pre_trigger_byte_count)
+	print(las.post_trigger_byte_count)
 	return las
