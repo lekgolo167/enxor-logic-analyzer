@@ -3,5 +3,8 @@
 *.ip_user_files
 *.sim
 *.xpr
-
+*.xdc
+*.bit
 *.runs
+*.bin
+__pycache__

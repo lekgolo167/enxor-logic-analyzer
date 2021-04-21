@@ -36,7 +36,7 @@ Electronic hobbyists, makers, and engineering students need low-cost and effecti
 ## Run
 * Launch the GUI by running:
   * ```$ python3 gui.py```
-  * Make sure that the 
+  * Make sure that the ```config.json``` is in the same directory as ```gui.py``` before running and that it has values for each of these fields: ```clk_freq```, ```mem_depth```, and ```num_channels```. Those fields are required and are explained in [Specifications](#specifications) section of this README.
 * ### How to use the GUI!
 * Top tool bar
   * File:
