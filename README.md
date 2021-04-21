@@ -36,7 +36,40 @@ Electronic hobbyists, makers, and engineering students need low-cost and effecti
 ## Run
 * Launch the GUI by running:
   * ```$ python3 gui.py```
-* A guid on how to use and operate the GUI will be available once the code for it has been completed.
+  * Make sure that the 
+* ### How to use the GUI!
+* Top tool bar
+  * File:
+    * Open: Loads a configuration file.
+    * Save As: Saves the current settings to a configuration file.
+    * Exit: Closes the program.
+  * Capture:
+    * Start: Starts a capture with the current settings.
+    * Stop: Stops a capture, if a trigger event occurred then the data that was recorded is sent over.
+    * Open: Loads a saved waveform and displays it.
+    * Save As: Saves the current waveform to a binary file.
+  * Settings:
+    * Serial Ports: Selects which serial port the logic analyzer is connected to.
+  * Help:
+    * Has a link to the GitHub repository.
+* Main menu caputre buttons
+  * 1: Selects which channel to watch for a trigger condition.
+  * 2: Sets if the trigger type is a rising or falling edge.
+  * 3: Sets the ratio of data that will be before a trigger event. 
+  * 4: Sets the sample rate, first number shows the sample interval rate, the next two numbers show the minimum and maximum record time respectivley.
+
+  ![Trigger Controller Waveform Image](./documentation/images/GUI_1.png)
+
+* Waveform Window
+  * 1: The channel name.
+  * 2: Indicates where the data came from. Is set to the filename if loaded from one or is Enxor if the data came directly from the logic analyzer.
+  * 3: The red bar indicates where the trigger point occured.
+  * 4: The position slider controls the x-axis. Click-and-drag to move the slider to a new location.
+  * 5: Time measurement with units. Click anywhere on the waveform and then click on a second point to show the time between the two points.
+  * 6: Indicates the status of the logic analyzer. The ```READY``` status indicates that the logic analyzer is ready to start a capture. When the logic analyzer is enabled but has not triggered yet, the status will be ```WAITING```. After a trigger event, the status will be ```TRIGGERED```. If you stop a capture in the middle then the status will be ```STOPPED```.
+
+  ![Trigger Controller Waveform Image](./documentation/images/GUI_2.png)
+
 ---
 ## Design Breakdown
 This project consists of 7 major blocks to carry out a functional logic analyzer: a trigger controller, sample rate counter, memory buffer, control module, and UART communication.
@@ -110,7 +143,12 @@ Current settings can be saved or loaded from a ```json``` file. The following ta
 
 ## Potential Enhancements
 * Add a small soft-core processor to make communicating with the host PC easier and more flexible.
+* Add protocol decoding
 
 ## Known Issues
+* If a data capture does not contain the full memory of the FPGA, errors occur why writting the data to or from a file
+  * Potential fix: dynamically write or read the amount of data in the file rather than hard-coded to the size of the memory
+  * Status: Unresolved
 * If a trigger condition occurs within microseconds after being enabled, the gui cannot get the serial port open intime to catch all the data.
   * Potential fix: have Enxor signal the host PC that the buffer is full then wait for a read command before sending captured data.
+  * Status: Resolved

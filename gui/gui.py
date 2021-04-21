@@ -79,6 +79,8 @@ class MenuBar(tk.Menu):
 	def set_serial_port(self, name):
 		print("Selected port: "+name)
 		self.logic_analyzer.port=name
+		if self.enxor_status_strvar.get() == "UNCONNECTED":
+			self.enxor_status_strvar.set("READY")
 
 	def save_configuration(self):
 		filename =  filedialog.asksaveasfilename(initialdir = "/",title = "Select file",filetypes = (("json files","*.json"),("all files","*.*")))
@@ -156,6 +158,8 @@ class EnxorGui(tk.Tk):
 		self.logic_analyzer.initializeFromConfigFile('./config.json')
 
 		self.enxor_status = tk.StringVar(value='READY')
+		if self.logic_analyzer.port == '':
+			self.enxor_status.set("UNCONNECTED")
 
 		self.time_measurement = tk.StringVar(value='---')
 		self.samples = [1,2,5,10,50,100,250,500,1000]
