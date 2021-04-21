@@ -58,7 +58,7 @@ Electronic hobbyists, makers, and engineering students need low-cost and effecti
   * 3: Sets the ratio of data that will be before a trigger event. 
   * 4: Sets the sample rate, first number shows the sample interval rate, the next two numbers show the minimum and maximum record time respectivley.
 
-  ![Trigger Controller Waveform Image](./documentation/images/GUI_1.png)
+  ![GUI Capture Buttons Image](./documentation/images/GUI_1.png)
 
 * Waveform Window
   * 1: The channel name.
@@ -68,7 +68,7 @@ Electronic hobbyists, makers, and engineering students need low-cost and effecti
   * 5: Time measurement with units. Click anywhere on the waveform and then click on a second point to show the time between the two points.
   * 6: Indicates the status of the logic analyzer. The ```READY``` status indicates that the logic analyzer is ready to start a capture. When the logic analyzer is enabled but has not triggered yet, the status will be ```WAITING```. After a trigger event, the status will be ```TRIGGERED```. If you stop a capture in the middle then the status will be ```STOPPED```.
 
-  ![Trigger Controller Waveform Image](./documentation/images/GUI_2.png)
+  ![GUI Waveform Image](./documentation/images/GUI_2.png)
 
 ---
 ## Design Breakdown
