@@ -131,7 +131,7 @@ def write_logic_analyzer_data_to_file(file_path, la):
 				binary_file.write(POST_BUFFER_HEADER)
 
 			# runs for the number of bytes needed; 8 channels = once, 16 channels = twice
-			for offset in range(0, (la.num_channels // 8),8):
+			for offset in range(0, la.num_channels,8):
 				byte = 0
 				for bit in range(8):
 					# combine separate channel data lists into one byte for each index
@@ -177,7 +177,7 @@ def read_logic_analyzer_data_from_file(file_path):
 				continue
 
 			# runs for the number of bytes needed; 8 channels = once, 16 channels = twice
-			for offset in range(0, (la.num_channels // 8), 8):
+			for offset in range(0, la.num_channels, 8):
 				current_byte = binary_file.read(1)
 				data = ord(current_byte)
 
@@ -218,7 +218,7 @@ def read_input_stream(byte_arr, las):
 			# This will realign the bytes to get correct offset
 			continue
 
-		for offset in range(0, (las.num_channels // 8), 8):
+		for offset in range(0, las.num_channels, 8):
 			current_byte = byte_arr[entry_num]
 			entry_num += 1
 			data = current_byte

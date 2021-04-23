@@ -201,7 +201,7 @@ class EnxorGui(tk.Tk):
 		self.precapture_size = tk.StringVar(value=self.precapture_percentages[0])
 		self.precapture_size.trace('w', self.precapture_percentages_dropdown)
 
-		self.trigger_channels = [x for x in range(1, 9)]
+		self.trigger_channels = [x for x in range(1, self.logic_analyzer.num_channels+1)]
 		self.trigger_channel = tk.IntVar(value=self.trigger_channels[self.logic_analyzer.channel])
 		self.trigger_channel.trace('w', self.trigger_channel_dropdown)
 

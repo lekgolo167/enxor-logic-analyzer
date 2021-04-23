@@ -35,7 +35,7 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, parameter MEM_DEPTH = 8192)(
+module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, parameter MEM_DEPTH = 8192)(
     input i_sys_clk,
     input i_rstn,
     input [DATA_WIDTH-1:0] i_raw_sig,
@@ -44,6 +44,8 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 1
     output o_enabled,
     output o_tx
 );
+
+    localparam PACKET_WIDTH = DATA_WIDTH + 8;
     
     wire [DATA_WIDTH-1:0] w_channels;
     wire [PACKET_WIDTH-1:0] w_data;

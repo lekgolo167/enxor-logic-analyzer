@@ -19,7 +19,9 @@ Electronic hobbyists, makers, and engineering students need low-cost and effecti
 ## FPGA Utilization
   | Manufacture | Family | Device | Frequency | WNS | LUT | FF | Channels | Memory Depth
   | --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- |
-  | Xilinx | Artix-7 | xc7a35tcpg236-1 | 100MHz | 4.664 | 193 | 227 | 8 | 8192
+  | Xilinx | Artix-7 | xc7a35tcpg236-1 | 100MHz | 4.313 | 198 | 223 | 8 | 4096
+  | Xilinx | Artix-7 | xc7a35tcpg236-1 | 100MHz | 4.271 | 201 | 228 | 8 | 8192
+  | Xilinx | Artix-7 | xc7a35tcpg236-1 | 100MHz | 4.098 | 200 | 240 | 16 | 4096
   | Altera | Cyclone IV | EP4CE10F17C8N | 50MHz | 10.729 | 404 | 238 | 8 | 8192
   | Lattice | iCE40 | LP8K | 16MHz | x | 665 | 234 | 8 | 8192
   
@@ -135,7 +137,7 @@ Current settings can be saved or loaded from a ```json``` file. The following ta
 ---
 ## Customize
 * In the LogicAnalyzerTop moduler are parameters that allow easy customization of the design.
-  * ```DATA_WIDTH``` This is the number of input channels to the FPGA
+  * ```DATA_WIDTH``` This is the number of input channels to the FPGA and must be divisible by 8, i.e. [8, 16, 24, 32]
   * ```MEM_DEPTH``` This is the number of rows in the memory buffer. Total bytes in the buffer is ```MEM_DEPTH``` * (```DATA_WIDTH```/8 + 1)
 * The UART requires a parameter called ```CLKS_PER_BIT```. To get the correct BAUD rate the following formula is used.
   * ```CLKS_PER_BIT``` = (Frequency of FPGA)/(Frequency of UART)

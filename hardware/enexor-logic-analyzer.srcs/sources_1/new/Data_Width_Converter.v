@@ -49,11 +49,14 @@ module Data_Width_Converter #(parameter PACKET_WIDTH = 16) (
     output reg o_tx_DV,
     output [7:0] o_tx_byte
     );
+
+    localparam NUM_OF_BYTES = (PACKET_WIDTH / 8) + 1;
     
+    reg [$clog2(NUM_OF_BYTES)-1:0] byte;
     wire [2:0] packet_case = {i_post_read, i_buffer_full, i_triggered_state & ~i_start_read};
     reg [7:0] packet_header;
     wire [PACKET_WIDTH+8-1:0] data = {i_data, packet_header};
-    reg [3:0] byte, r_state;
+    reg [3:0] r_state;
     
     localparam IDLE = 3'b000;
     localparam TRIG = 3'b001;
@@ -93,7 +96,11 @@ module Data_Width_Converter #(parameter PACKET_WIDTH = 16) (
         endcase
     end // END always
     
-    assign o_tx_byte = ( byte == 0 )? data[7:0] : ( byte == 1 )? data[15:8] : ( byte == 2 )? data[23:16] : 8'b0;
+    Mux #(.NUM_INPUTS(NUM_OF_BYTES)) mux (
+        .i_data(data),
+        .i_sel(byte),
+        .o_data(o_tx_byte)
+    );
     
     always @(posedge i_clk) begin
         if (~i_enable) begin
@@ -107,13 +114,13 @@ module Data_Width_Converter #(parameter PACKET_WIDTH = 16) (
                         o_tx_DV <= 1;
                     end
                     else begin
-                        o_tx_DV <= 0; // Move these two into the state WAIT?
+                        o_tx_DV <= 0;
                         o_r_ack <= 0;
                         byte <= 0;
                     end
                 end
                 TRIG: begin
-                    if (i_buffer_full) begin // might change this to tx_active
+                    if (i_buffer_full) begin
                         o_tx_DV <= 1;
                         r_state <= FULL;
                     end
@@ -122,7 +129,7 @@ module Data_Width_Converter #(parameter PACKET_WIDTH = 16) (
                     end
                 end
                 FULL: begin
-                    if (i_start_read) begin // might change this to tx_active
+                    if (i_start_read) begin
                         o_tx_DV <= 1;
                         r_state <= SEND;
                     end
@@ -131,7 +138,7 @@ module Data_Width_Converter #(parameter PACKET_WIDTH = 16) (
                     end
                 end
                 SEND: begin
-                    if (i_tx_done) begin // might change this to tx_active
+                    if (i_tx_done) begin
                         o_tx_DV <= 0;
                         r_state <= INCR;
                     end
@@ -140,7 +147,7 @@ module Data_Width_Converter #(parameter PACKET_WIDTH = 16) (
                     end
                 end
                 INCR: begin
-                    if (byte == 2) begin // change this to a parameter
+                    if (byte == (PACKET_WIDTH/8)) begin
                         o_r_ack <= 1;
                         r_state <= ACK;
                     end

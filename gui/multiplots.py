@@ -37,8 +37,7 @@ class MultiPlot():
 	def update(self, val):
 
 		try:
-			# val += self.spos.val
-			# self.spos.
+
 			left = val - self.zoom_level
 			right = val + self.zoom_level
 			if left < 0.0:
@@ -89,7 +88,6 @@ class MultiPlot():
 			self.time_measurement_strvar.set(time_measurement)
 
 	def reset(self, event):
-		print("RESET")
 		self.spos.reset()
 		self.zoom_level = self.total_time_units
 
@@ -129,7 +127,6 @@ class MultiPlot():
 
 		self.spos = Slider(plt.axes([0.2, 0.03, 0.65, 0.03]), 'Pos', 1, las.total_time_units, valinit=trigger_point)
 		self.btn = Button(plt.axes([0.0, 0.00, 0.1, 0.03]), 'Reset View')
-		self.reset(None)
 		# callbacks
 		self.spos.on_changed(self.update)
 		self.btn.on_clicked(self.reset)

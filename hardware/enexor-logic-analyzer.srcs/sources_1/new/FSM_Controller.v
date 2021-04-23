@@ -59,7 +59,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
     output [7:0] o_tx_byte
     );
     
-    Data_Width_Converter DWC ( 
+    Data_Width_Converter #(.PACKET_WIDTH(PACKET_WIDTH)) DWC ( 
         .i_clk(i_sys_clk),
         .i_triggered_state(i_triggered_state),
         .i_start_read(o_start_read),
