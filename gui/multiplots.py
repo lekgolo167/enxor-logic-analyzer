@@ -15,7 +15,7 @@
 # 		along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider
+from matplotlib.widgets import Slider, Button
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,  NavigationToolbar2Tk) 
 
 from logicAnalyzer import convert_sec_to_relavent_time
@@ -35,12 +35,20 @@ class MultiPlot():
 		self.time_measurement_strvar = time_measurement_strvar
 
 	def update(self, val):
+
 		try:
-			pos = self.spos.val
+			# val += self.spos.val
+			# self.spos.
+			left = val - self.zoom_level
+			right = val + self.zoom_level
+			if left < 0.0:
+				left = 0.0
+			if right > self.total_time_units:
+				right = self.total_time_units
 
 			for x in range(self.num_channels):
 				# constants -0.1 and 1.2 lock the y-axis from moving
-				self.axs[x].axis([pos,pos+self.zoom_level,-0.1,1.2])
+				self.axs[x].axis([left,right,-0.1,1.2])
 
 			self.fig.canvas.draw_idle()
 
@@ -80,6 +88,17 @@ class MultiPlot():
 
 			self.time_measurement_strvar.set(time_measurement)
 
+	def reset(self, event):
+		print("RESET")
+		self.spos.reset()
+		self.zoom_level = self.total_time_units
+
+		for x in range(self.num_channels):
+				# constants -0.1 and 1.2 lock the y-axis from moving
+			self.axs[x].axis([0,self.total_time_units,-0.1,1.2])
+
+		self.fig.canvas.draw_idle()
+
 	def plot_captured_data(self, name, las, ws):
 
 		self.zoom_level = las.total_time_units
@@ -107,11 +126,13 @@ class MultiPlot():
 			axs[x].set_ylabel('CH-'+str(x+1))
 
 		# add the slider
-		axpos = plt.axes([0.2, 0.03, 0.65, 0.03])
-		self.spos = Slider(axpos, 'Pos', 1, las.total_time_units)
-	
+
+		self.spos = Slider(plt.axes([0.2, 0.03, 0.65, 0.03]), 'Pos', 1, las.total_time_units, valinit=trigger_point)
+		self.btn = Button(plt.axes([0.0, 0.00, 0.1, 0.03]), 'Reset View')
+		self.reset(None)
 		# callbacks
 		self.spos.on_changed(self.update)
+		self.btn.on_clicked(self.reset)
 		fig.canvas.mpl_connect('button_press_event', self.on_click)
 		fig.canvas.mpl_connect('scroll_event', self.zoom)
 

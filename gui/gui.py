@@ -28,7 +28,7 @@ from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,  NavigationToo
 matplotlib.use('TkAgg') 
 
 from logicAnalyzer import read_logic_analyzer_data_from_file, write_logic_analyzer_data_to_file, LogicAnalyzerModel
-from serialInterface import AsyncReadSerial, get_available_serial_ports, configure_logic_analyzer, enable_logic_analyzer
+from serialInterface import AsyncReadSerial, get_available_serial_ports, configure_logic_analyzer
 from multiplots import MultiPlot
 
 
@@ -136,7 +136,9 @@ class MenuBar(tk.Menu):
 	def monitor(self):
 
 		if self.serial_thread.is_alive():
-			if self.serial_thread.triggered and not self.is_set_enxor_state:
+			if self.serial_thread.start_read:
+				self.enxor_status_strvar.set("READING")
+			elif self.serial_thread.triggered and not self.is_set_enxor_state:
 				self.enxor_status_strvar.set("TRIGGERED")
 				self.is_set_enxor_state = True
 			self.after(500,self.monitor)
@@ -151,7 +153,6 @@ class MenuBar(tk.Menu):
 		self.capture_menu.entryconfig(0, state='disabled')
 
 		configure_logic_analyzer(self.logic_analyzer)
-		enable_logic_analyzer(self.logic_analyzer)
 
 		self.enxor_status_strvar.set("WAITING")
 		

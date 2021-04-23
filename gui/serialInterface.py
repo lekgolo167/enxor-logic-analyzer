@@ -58,14 +58,6 @@ def configure_logic_analyzer(las):
 	ser.write(TRIG_TYPE_HEADER)
 	ser.write(bytes([las.trigger_type]))
 
-	ser.close
-
-def enable_logic_analyzer(las):
-
-	ser = serial.Serial(port=las.port, baudrate=las.baud, timeout=None,xonxoff=False)
-	ser.reset_input_buffer()
-	ser.open
-
 	# ensure enable is off to start to reset the logic
 	ser.write(ENABLE_HEADER)
 	ser.write(b'\x00')
@@ -73,10 +65,8 @@ def enable_logic_analyzer(las):
 	ser.write(START_READ_HEADER)
 	ser.write(b'\x00')
 
-	ser.write(ENABLE_HEADER)
-	ser.write(b'\x01')
-
 	ser.close
+
 
 class AsyncReadSerial(Thread):
 	def __init__(self, las):
@@ -86,6 +76,7 @@ class AsyncReadSerial(Thread):
 		self.kill = False
 		self.full = False
 		self.triggered = False
+		self.start_read = False
 		self.total_bytes = 0
 
 	def run(self):
@@ -99,6 +90,9 @@ class AsyncReadSerial(Thread):
 		ser.open
 
 		byte_chunks = []
+
+		ser.write(ENABLE_HEADER)
+		ser.write(b'\x01')
 
 		while (not self.full or not self.triggered) and not self.kill:
 			bytesToRead = ser.inWaiting()
@@ -131,10 +125,12 @@ class AsyncReadSerial(Thread):
 			ser.write(STOP_HEADER)
 			ser.write(b'\x00')
 		
-		max_time =  ((1 / self.las.baud) * self.las.mem_depth * self.las.bytes_per_row*8)+3.0
+		max_time =  ((1 / self.las.baud) * self.las.mem_depth * self.las.bytes_per_row * 8) + 3.0
 		timeout = time.time() + max_time
 
 		if self.triggered:
+			print("START READ")
+			self.start_read = True
 			ser.write(START_READ_HEADER)
 			ser.write(b'\x01')
 		else:

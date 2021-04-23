@@ -56,7 +56,7 @@ module demo_top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, paramet
     wire [7:0] w_time, w_tx_byte, w_rx_byte;
     wire [15:0] w_scaler;
     wire w_sample_clk_posedge, w_triggered_state, w_rollover, w_event, w_trig_pulse, w_rstn, w_buffer_full, w_finished_read, w_trigger_type;
-    wire w_r_ack, w_enable, w_start_read, w_t_rdy, w_tx_DV, w_rx_DV, w_tx_done, w_post_read;
+    wire w_r_ack, w_enable, w_start_read, w_t_rdy, w_tx_DV, w_rx_DV, w_tx_done, w_post_read, w_stop;
     
     assign o_triggered_led = w_triggered_state;
     assign o_enabled = w_enable;
@@ -115,7 +115,7 @@ module demo_top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, paramet
         .i_sys_clk(i_sys_clk),
         .i_rstn(w_rstn),
         .i_enable(w_enable),
-        .i_stop(0),
+        .i_stop(w_stop),
         .i_precap_depth(w_precap_depth),
         .i_triggered_state(w_triggered_state),
         .i_event(w_event | w_rollover),
@@ -148,6 +148,7 @@ module demo_top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, paramet
         .o_enable(w_enable),
         .o_r_ack(w_r_ack),
         .o_start_read(w_start_read),
+        .o_stop(w_stop),
         .o_tx_DV(w_tx_DV),
         .o_tx_byte(w_tx_byte)
     );

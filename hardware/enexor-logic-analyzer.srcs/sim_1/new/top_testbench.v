@@ -43,7 +43,7 @@ module top_testbench(
     reg clk, rstn, rx;
     reg [15:0] count;
 
-    parameter c_BIT_PERIOD      = 384;
+    parameter c_BIT_PERIOD      = 8680;
     // Takes in input byte and serializes it 
     task UART_WRITE_BYTE;
         input [7:0] i_Data;
@@ -76,16 +76,16 @@ module top_testbench(
         .o_tx(tx),
         .o_triggered_led(triggered_led)
     );
-    //wire buffer_full = LAT.w_buffer_full;
+    wire buffer_full = LAT.w_buffer_full;
     always
-        #2 clk = ~clk;
+        #5 clk = ~clk;
         
     initial begin
         clk = 0;
-        rstn = 0;
+        rstn = 1;
         count = 0;
         rx =1;
-        #50 rstn = 1;
+        #150 rstn = 0;
 
         @(posedge clk);
         // send scaler command
@@ -129,7 +129,7 @@ module top_testbench(
         UART_WRITE_BYTE(8'h01);
         @(posedge clk);
 
-        //@(posedge buffer_full)
+        @(posedge buffer_full)
         #1000;
         // send start read command
         UART_WRITE_BYTE(8'hF9);

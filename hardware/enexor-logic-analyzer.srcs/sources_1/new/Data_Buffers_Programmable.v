@@ -46,7 +46,6 @@ module Data_Buffers_Programmable #(parameter PACKET_WIDTH = 16, MEM_DEPTH = 16)(
     input i_r_ack,
     input i_start_read,
     input [PACKET_WIDTH-1:0] i_data,
-    output reg o_prefilled,
     output reg o_post_read,
     output reg o_buffer_full,
     output reg o_finished_read,
@@ -86,7 +85,6 @@ module Data_Buffers_Programmable #(parameter PACKET_WIDTH = 16, MEM_DEPTH = 16)(
                         r_end_ptr <= 0;
                         r_wr_adr <= 0;
                         o_buffer_full <= 0;
-                        o_prefilled <= 0;
                         if (i_enable) begin // wait here until the logic analyzer is enabled then enable write
                             r_wr_en <= 1;
                             r_wr_state <= s_PRE_FILL;
@@ -111,7 +109,6 @@ module Data_Buffers_Programmable #(parameter PACKET_WIDTH = 16, MEM_DEPTH = 16)(
                         end
                         // precapture buffer has grown to max size
                         else if (r_wr_adr == i_precap_depth) begin
-                            o_prefilled <= 1;
                             r_wr_state <= s_PRE_CAPTURE;
                         end
                     end
