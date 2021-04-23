@@ -26,8 +26,8 @@ Electronic hobbyists, makers, and engineering students need low-cost and effecti
 ---
 ## Installation
 * Python 3.6 or higher is required to run the GUI. Required Python packages:
-  * matplotlib
-  * tkinter
+  * matplotlib: version >= 3.2.0 
+  * tkinter: version >= 8.6
 * The FPGA development tools vary depending on the manufacture.
   * Xilinx -> Vivado
   * Altera -> Quartus Prime

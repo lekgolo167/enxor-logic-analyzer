@@ -7,4 +7,5 @@
 *.bit
 *.runs
 *.bin
+.vscode
 __pycache__
