@@ -150,7 +150,7 @@ Current settings can be saved or loaded from a ```json``` file. The following ta
 ## Known Issues
 * If a data capture does not contain the full memory of the FPGA, errors occur why writting the data to or from a file
   * Potential fix: dynamically write or read the amount of data in the file rather than hard-coded to the size of the memory
-  * Status: Unresolved
+  * Status: Resolved
 * If a trigger condition occurs within microseconds after being enabled, the gui cannot get the serial port open intime to catch all the data.
   * Potential fix: have Enxor signal the host PC that the buffer is full then wait for a read command before sending captured data.
   * Status: Resolved
