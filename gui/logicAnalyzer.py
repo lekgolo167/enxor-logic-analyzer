@@ -30,7 +30,8 @@ TRIGGERED_STATE_HEADER = b'\xA7'
 DONE_HEADER = b'\xAF'
 TRIGGER_RISING_ENDGE = 1
 TRIGGER_FALLING_ENDGE = 0
-MAX_TIMER_COUNT = 256
+MAX_TIMER_COUNT = 255
+
 
 class LogicAnalyzerModel():
 	def __init__(self):
@@ -51,41 +52,36 @@ class LogicAnalyzerModel():
 		self.bytes_per_row = 0
 		self.clk_freq = 1
 
-	def getMaxCaptureTime(self, divisor):
+	def get_max_capture_time(self, divisor):
 		return (MAX_TIMER_COUNT*self.mem_depth) / (self.clk_freq/divisor)
 
-	def getMinCaptureTime(self, divisor):
+	def get_min_capture_time(self, divisor):
 		return (self.mem_depth) / (self.clk_freq/divisor)
 
-	def getSamplesIntervalInSeconds(self, divisor):
+	def get_samples_interval_in_seconds(self, divisor):
 		return 1 / (self.clk_freq / divisor)
 
-	def convertSecToRelaventTime(self, seconds):
+	def get_min_max_string(self, divisor):
+		_min = self.get_min_capture_time(divisor)
+		_max = self.get_max_capture_time(divisor)
+		_rate = self.get_samples_interval_in_seconds(divisor)
 
-		units = 0
-		unit_names = [' s', ' ms', ' us', ' ns']
-		while int(seconds) == 0 or units >= len(unit_names):
-			seconds *= 1000
-			units += 1
-		return '{:.2f}'.format(seconds) + unit_names[units]
+		return convert_sec_to_relavent_time(_rate) + " : " \
+			   + convert_sec_to_relavent_time(_min) + " - " \
+			   + convert_sec_to_relavent_time(_max)
 
-	def getMinMaxString(self, divisor):
-		_min = self.getMinCaptureTime(divisor)
-		_max = self.getMaxCaptureTime(divisor)
-		_rate = self.getSamplesIntervalInSeconds(divisor)
-
-		return self.convertSecToRelaventTime(_rate) + " : " + self.convertSecToRelaventTime(_min) + " - " + self.convertSecToRelaventTime(_max)
-
-	def initializeFromConfigFile(self, file_path):
+	def initialize_from_config_file(self, file_path):
 		with open(file_path, 'r') as config_file:
 			obj = json.loads(config_file.read())
 
+			# if config file does not have a field, keep it the same
 			self.baud = obj.get('baud_rate', self.baud)
 			self.port = obj.get('port_name', self.port)
 			self.precap_size = obj.get('precap_size', self.precap_size)
 			self.scaler = obj.get('sample_rate', self.scaler)
 			self.channel = obj.get('trig_channel', self.channel)
 			self.trigger_type = obj.get('trig_type', self.trigger_type)
+			# these fields are required
 			try:
 				self.mem_depth = obj['mem_depth']
 				self.clk_freq = obj['clk_freq']
@@ -96,7 +92,7 @@ class LogicAnalyzerModel():
 
 			return True
 
-	def saveToConfigFile(self, file_path):
+	def save_to_config_file(self, file_path):
 		with open(file_path, 'w') as config_file:
 			text = {
 				"baud_rate" : self.baud,
@@ -112,7 +108,7 @@ class LogicAnalyzerModel():
 			json.dump(text,config_file)
 			
 
-def writeLogicAnalyzerDataToFile(file_path, la):
+def write_logic_analyzer_data_to_file(file_path, la):
 
 	with open(file_path, 'wb') as binary_file:
 		# set 1st byte to number of channels
@@ -126,22 +122,27 @@ def writeLogicAnalyzerDataToFile(file_path, la):
 		# set bytes 8 and 9 to the sample rate
 		binary_file.write(la.scaler.to_bytes(2,byteorder='little'))
 
-		for entry_num in range(la.mem_depth):
+		# format: <TYPE> <N_DATA_BYTES> <TIMESTAMP>
+		for entry_num in range(la.pre_trigger_byte_count + la.post_trigger_byte_count):
+			# set the data type
 			if entry_num < la.pre_trigger_byte_count:
 				binary_file.write(PRE_BUFFER_HEADER)
 			else:
 				binary_file.write(POST_BUFFER_HEADER)
 
+			# runs for the number of bytes needed; 8 channels = once, 16 channels = twice
 			for offset in range(0, (la.num_channels // 8),8):
 				byte = 0
 				for bit in range(8):
+					# combine separate channel data lists into one byte for each index
 					byte = byte | (la.channel_data[offset+bit][entry_num] << bit)
 
 				binary_file.write(bytes([byte]))
 
+			# set the timestamp
 			binary_file.write(bytes([la.timestamps[entry_num]]))
 
-def readLogicAnalyzerDataFromFile(file_path):
+def read_logic_analyzer_data_from_file(file_path):
 
 	with open(file_path, 'rb') as binary_file:
 		la = LogicAnalyzerModel()
@@ -158,10 +159,11 @@ def readLogicAnalyzerDataFromFile(file_path):
 		# read bytes 8 and 9 for the sample rate
 		la.scaler = int.from_bytes(binary_file.read(2), 'little')
 
-		for x in range(la.num_channels):
+		for _ in range(la.num_channels):
 			la.channel_data.append([])
 		
-		for entry_num in range(la.mem_depth):
+		# if there are less bytes than the memory size, 'with open' just closes without crashing
+		for _ in range(la.mem_depth):
 			byte_header = binary_file.read(1)
 
 			if not byte_header:
@@ -174,11 +176,13 @@ def readLogicAnalyzerDataFromFile(file_path):
 				# This will realign the bytes to get correct offset
 				continue
 
+			# runs for the number of bytes needed; 8 channels = once, 16 channels = twice
 			for offset in range(0, (la.num_channels // 8), 8):
 				current_byte = binary_file.read(1)
 				data = ord(current_byte)
 
 				for bit in range(8):
+					# separate the byte into each individual channel
 					la.channel_data[bit+offset].append((data >> bit) & 1)
 
 			timestamp = ord(binary_file.read(1))
@@ -188,7 +192,7 @@ def readLogicAnalyzerDataFromFile(file_path):
 
 		return la
 
-def readInputstream(byte_arr, las):
+def read_input_stream(byte_arr, las):
 	las.channel_data = []
 	las.x_axis = []
 	las.timestamps = []
@@ -231,3 +235,15 @@ def readInputstream(byte_arr, las):
 	print(las.pre_trigger_byte_count)
 	print(las.post_trigger_byte_count)
 	return las
+
+def convert_sec_to_relavent_time(seconds):
+
+	units = 0
+	# last item is 's' to account for seconds == 0
+	unit_names = ['s', 'ms', 'us', 'ns', 'ps', 's']
+
+	while int(seconds) == 0 and units < (len(unit_names) - 1):
+		seconds *= 1000
+		units += 1
+
+	return '{:.2f} '.format(seconds) + unit_names[units]

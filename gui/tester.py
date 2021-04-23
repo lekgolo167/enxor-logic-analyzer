@@ -17,13 +17,13 @@
 import filecmp
 from logicAnalyzer import *
 
-def readWriteFileTest():
+def read_write_file_test():
 	for x in range(1,3):
 		in_file = './test_data/test{}.bin'.format(x)
 		out_file = './test_data/out{}.bin'.format(x)
 
-		la = readLogicAnalyzerDataFromFile(in_file)
-		writeLogicAnalyzerDataToFile(out_file, la)
+		la = read_logic_analyzer_data_from_file(in_file)
+		write_logic_analyzer_data_to_file(out_file, la)
 
 
 		if filecmp.cmp(in_file, out_file, shallow=False):
@@ -31,16 +31,16 @@ def readWriteFileTest():
 		else:
 			print('[Read write {} ... FAIL]'.format(x))
 
-def testInitializeFromFile():
+def test_initialize_from_file():
 	la1 = LogicAnalyzerModel()
 	la2 = LogicAnalyzerModel()
 
-	la2.initializeFromConfigFile("./config.json")
+	la2.initialize_from_config_file("./config.json")
 
 	if la1.clk_freq == la2.clk_freq:
 		print('[Init from file ... FAIL]')
 	else:
 		print('[Init from file ... PASS]')
 
-testInitializeFromFile()
-readWriteFileTest()
+test_initialize_from_file()
+read_write_file_test()

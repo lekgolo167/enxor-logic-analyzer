@@ -24,7 +24,7 @@ from threading import Thread
 from logicAnalyzer import *
 
 
-def getAvailableSerialPorts():
+def get_available_serial_ports():
 	ports = serial.tools.list_ports.comports(include_links=False)
 	port_names = []
 	for port in ports :
@@ -32,7 +32,7 @@ def getAvailableSerialPorts():
 
 	return port_names
 
-def configureLogicAnalyzer(las):
+def configure_logic_analyzer(las):
 
 	ser = serial.Serial(port=las.port, baudrate=las.baud, timeout=None,xonxoff=False)
 	ser.reset_input_buffer()
@@ -60,7 +60,7 @@ def configureLogicAnalyzer(las):
 
 	ser.close
 
-def enableLogicAnalyzer(las):
+def enable_logic_analyzer(las):
 
 	ser = serial.Serial(port=las.port, baudrate=las.baud, timeout=None,xonxoff=False)
 	ser.reset_input_buffer()
@@ -89,15 +89,14 @@ class AsyncReadSerial(Thread):
 		self.total_bytes = 0
 
 	def run(self):
-		data = self.readIncomingSerialData()
+		data = self.read_incoming_serial_data()
 		if data:
-			readInputstream(data, self.las)
+			read_input_stream(data, self.las)
 
-	def readIncomingSerialData(self):
+	def read_incoming_serial_data(self):
 		ser = serial.Serial(port=self.las.port, baudrate=self.las.baud, timeout=None,xonxoff=False)
 		ser.reset_input_buffer()
 		ser.open
-		
 
 		byte_chunks = []
 
@@ -161,11 +160,11 @@ class AsyncReadSerial(Thread):
 		ser.close()
 
 		if self.total_bytes > 0:
-			return self.convertByteLists(byte_chunks)
+			return self.convert_byte_lists(byte_chunks)
 		else:
 			return None
 
-	def convertByteLists(self, byte_chunks):
+	def convert_byte_lists(self, byte_chunks):
 		combined = byte_chunks[0]
 		for x in range(1, len(byte_chunks)):
 			combined += byte_chunks[x]

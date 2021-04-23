@@ -27,9 +27,10 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,  NavigationToolbar2Tk) 
 matplotlib.use('TkAgg') 
 
-from logicAnalyzer import *
-from serialInterface import *
+from logicAnalyzer import read_logic_analyzer_data_from_file, write_logic_analyzer_data_to_file, LogicAnalyzerModel
+from serialInterface import AsyncReadSerial, get_available_serial_ports, configure_logic_analyzer, enable_logic_analyzer
 from multiplots import MultiPlot
+
 
 class MenuBar(tk.Menu):
 	def __init__(self, ws, time_measurement_strvar, enxor_status_strvar, la):
@@ -39,8 +40,7 @@ class MenuBar(tk.Menu):
 		self.canvas = None
 		self.multi_p = MultiPlot(time_measurement_strvar)
 		self.serial_thread = AsyncReadSerial(self.logic_analyzer)
-		self.recent_configs = []
-		self.sel_port = tk.IntVar()
+		self.sel_port = tk.IntVar(value=-1)
 		self.fmc = None
 		self.is_set_enxor_state = False
 
@@ -49,20 +49,24 @@ class MenuBar(tk.Menu):
 		file = tk.Menu(self, tearoff=False)
 		file.add_command(label="Configuration")
 		file.add_separator()
-		file.add_command(label="Open", command=self.open_configuration)  
-		file.add_command(label="Save As", command=self.save_configuration)  
-		#file.add_command(label="Save")    
+		file.add_command(label="Open", command=self.open_configuration)
+		file.add_command(label="Save As", command=self.save_configuration)
 		file.add_separator()
 		file.add_command(label="Exit", underline=1, command=self.quit)
 		self.add_cascade(label="File",underline=0, menu=file)
 		
-		self.capture_menu = tk.Menu(self, tearoff=0)  
-		self.capture_menu.add_command(label="Start",  command=self.start_capture)  #state='disabled',
-		self.capture_menu.add_command(label="Stop", command=self.stop_capture)  
-		self.capture_menu.add_separator()    
-		self.capture_menu.add_command(label="Save As", command=self.save_capture)  
-		self.capture_menu.add_command(label="Open", command=self.open_capture)  
-		self.add_cascade(label="Capture", menu=self.capture_menu) 
+		self.capture_menu = tk.Menu(self, tearoff=0)
+
+		start_state = "normal"
+		if self.logic_analyzer.port == "":
+			start_state = 'disabled'
+
+		self.capture_menu.add_command(label="Start",  command=self.start_capture, state=start_state)
+		self.capture_menu.add_command(label="Stop", command=self.stop_capture)
+		self.capture_menu.add_separator()
+		self.capture_menu.add_command(label="Save As", command=self.save_capture)
+		self.capture_menu.add_command(label="Open", command=self.open_capture)
+		self.add_cascade(label="Capture", menu=self.capture_menu)
 
 		settings = tk.Menu(self, tearoff=0)
 
@@ -70,9 +74,9 @@ class MenuBar(tk.Menu):
 		settings.add_cascade(label='Serial Ports', menu=self.available_ports_menu)
 		self.add_cascade(label='Settings', menu=settings)
 
-		help = tk.Menu(self, tearoff=0)  
-		help.add_command(label="About", command=self.about)  
-		self.add_cascade(label="Help", menu=help)  
+		help = tk.Menu(self, tearoff=0)
+		help.add_command(label="About", command=self.about)
+		self.add_cascade(label="Help", menu=help)
 
 	def exit(self):
 		self.exit
@@ -83,45 +87,51 @@ class MenuBar(tk.Menu):
 	def refresh_serial_ports(self):
 		self.available_ports_menu.delete(0, 100)
 		port_num = 0
-		for port_name in getAvailableSerialPorts():
-				self.available_ports_menu.add_radiobutton(label=port_name, variable=self.sel_port, value=port_num, command=lambda x=port_name: self.set_serial_port(x))
-				port_num +=1
+		for port_name in get_available_serial_ports():
+				self.available_ports_menu.add_radiobutton(label=port_name, variable=self.sel_port, value=port_num,
+														  command=lambda x=port_name: self.set_serial_port(x))
+				port_num += 1
 		try:
 			self.sel_port.set(self.available_ports_menu.index(self.logic_analyzer.port))
 		except:
 			pass
 
 	def set_serial_port(self, name):
-		print("Selected port: "+name)
-		self.logic_analyzer.port=name
+		print("Selected port: " + name)
+		self.logic_analyzer.port = name
 		if self.enxor_status_strvar.get() == "UNCONNECTED":
 			self.enxor_status_strvar.set("READY")
 
 	def save_configuration(self):
-		filename =  filedialog.asksaveasfilename(initialdir = "/",title = "Select file",filetypes = (("json files","*.json"),("all files","*.*")))
+		filename = filedialog.asksaveasfilename(initialdir = "/", title = "Select file", 
+												filetypes = (("json files","*.json"),("all files","*.*")))
 		if filename != "":
-			self.logic_analyzer.saveToConfigFile(filename)
+			self.logic_analyzer.save_to_config_file(filename)
 
 	def open_configuration(self):
-		filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("json files","*.json"),("all files","*.*")))
+		filename = filedialog.askopenfilename(initialdir = "/", title = "Select file",
+											  filetypes = (("json files","*.json"),("all files","*.*")))
 		valid = None
 		if filename != "":
-			valid = self.logic_analyzer.initializeFromConfigFile(filename)
-		if valid == False:
+			valid = self.logic_analyzer.initialize_from_config_file(filename)
+		if not valid:
 			self.capture_menu.entryconfig(0, state='disabled')
-			messagebox.showinfo('Invalid Configuration', "The following fields are required: 'mem_depth', 'clk_freq', 'num_channels")
-		elif valid == True:
+			messagebox.showinfo('Invalid Configuration',
+								"The following fields are required: 'mem_depth', 'clk_freq', 'num_channels")
+		else:
 			self.capture_menu.entryconfig(0, state='normal')
 
 	def save_capture(self):
-		filename =  filedialog.asksaveasfilename(initialdir = "/",title = "Select file",filetypes = (("binary files","*.bin"),("all files","*.*")))
-		writeLogicAnalyzerDataToFile(filename, self.logic_analyzer)
+		filename = filedialog.asksaveasfilename(initialdir = "/", title = "Select file",
+												filetypes = (("binary files","*.bin"),("all files","*.*")))
+		write_logic_analyzer_data_to_file(filename, self.logic_analyzer)
 
 	def open_capture(self):
-		filename =  filedialog.askopenfilename(initialdir = "/",title = "Select file",filetypes = (("binary files","*.bin"),("all files","*.*")))
-		self.logic_analyzer = readLogicAnalyzerDataFromFile(filename)
+		filename = filedialog.askopenfilename(initialdir = "/", title = "Select file",
+											  filetypes = (("binary files","*.bin"),("all files","*.*")))
+		logic_analyzer = read_logic_analyzer_data_from_file(filename)
 
-		self.add_plot_to_window(Path(filename).parts[-1])
+		self.add_plot_to_window(Path(filename).parts[-1], logic_analyzer)
 
 	def monitor(self):
 
@@ -134,14 +144,14 @@ class MenuBar(tk.Menu):
 			self.is_set_enxor_state = False
 			self.enxor_status_strvar.set("READY")
 			if self.serial_thread.triggered:
-				self.add_plot_to_window('Enxor')
+				self.add_plot_to_window('Enxor', self.logic_analyzer)
 			self.capture_menu.entryconfig(0, state='normal')
 
 	def start_capture(self):
 		self.capture_menu.entryconfig(0, state='disabled')
 
-		configureLogicAnalyzer(self.logic_analyzer)
-		enableLogicAnalyzer(self.logic_analyzer)
+		configure_logic_analyzer(self.logic_analyzer)
+		enable_logic_analyzer(self.logic_analyzer)
 
 		self.enxor_status_strvar.set("WAITING")
 		
@@ -155,12 +165,12 @@ class MenuBar(tk.Menu):
 	
 		self.capture_menu.entryconfig(0, state='normal')
 
-	def add_plot_to_window(self, name):
+	def add_plot_to_window(self, name, logic_analyzer):
 		if self.canvas != None:
 			self.canvas.get_tk_widget().pack_forget()
 			self.canvas = None
 
-		self.canvas = self.multi_p.plot_captured_data(name, self.logic_analyzer, self.fmc)
+		self.canvas = self.multi_p.plot_captured_data(name, logic_analyzer, self.fmc)
 
 		# placing the canvas on the Tkinter window 
 		self.canvas.get_tk_widget().pack()
@@ -170,7 +180,7 @@ class EnxorGui(tk.Tk):
 		tk.Tk.__init__(self)
 
 		self.logic_analyzer = LogicAnalyzerModel()
-		self.logic_analyzer.initializeFromConfigFile('./config.json')
+		self.logic_analyzer.initialize_from_config_file('./config.json')
 
 		self.enxor_status = tk.StringVar(value='READY')
 		if self.logic_analyzer.port == '':
@@ -178,7 +188,11 @@ class EnxorGui(tk.Tk):
 
 		self.time_measurement = tk.StringVar(value='---')
 		self.samples = [1,2,5,10,50,100,250,500,1000]
-		self.sample_divisors = [self.logic_analyzer.getMinMaxString(x) for x in self.samples]
+
+		if self.logic_analyzer.scaler not in self.samples:
+			self.samples.insert(0, self.logic_analyzer.scaler)
+
+		self.sample_divisors = [self.logic_analyzer.get_min_max_string(x) for x in self.samples]
 		self.sample_divisor = tk.StringVar(value=self.sample_divisors[0])
 		self.sample_divisor.trace('w', self.sample_rate_dropdown)
 
@@ -187,11 +201,11 @@ class EnxorGui(tk.Tk):
 		self.precapture_size.trace('w', self.precapture_percentages_dropdown)
 
 		self.trigger_channels = [x for x in range(1, 9)]
-		self.trigger_channel = tk.IntVar(value=self.trigger_channels[0])
+		self.trigger_channel = tk.IntVar(value=self.trigger_channels[self.logic_analyzer.channel])
 		self.trigger_channel.trace('w', self.trigger_channel_dropdown)
 
 		self.trigger_types = ['Falling', 'Rising']
-		self.trigger_type = tk.StringVar(value=self.trigger_types[1])
+		self.trigger_type = tk.StringVar(value=self.trigger_types[self.logic_analyzer.trigger_type])
 		self.trigger_type.trace('w', self.trigger_type_dropdown)
 
 		self.menubar = MenuBar(self, self.time_measurement, self.enxor_status, self.logic_analyzer)
@@ -263,12 +277,12 @@ class EnxorGui(tk.Tk):
 		footer = tk.Frame(self)
 		footer.grid(sticky='sew', row=2, column=0)
 
-		time_label = tk.Label(footer, textvariable=self.time_measurement, font='Helvetica 18 bold')
-		time_label.grid(row=0, column=0, pady=5, padx=5, sticky='nw')
 		state_label = tk.Label(footer, text="STATE:")
-		state_label.grid(row=0, column=1, pady=5, padx=5, sticky='ne')
+		state_label.grid(row=0, column=0, pady=5, padx=5, sticky='ne')
 		enxor_status_label = tk.Label(footer, textvariable=self.enxor_status)
-		enxor_status_label.grid(row=0, column=2, pady=5, padx=5, sticky='ne')
+		enxor_status_label.grid(row=0, column=1, pady=5, padx=5, sticky='ne')
+		time_label = tk.Label(footer, textvariable=self.time_measurement, font='Helvetica 18 bold')
+		time_label.grid(row=0, column=2, pady=5, padx=5, sticky='nw')
 
 if __name__ == "__main__":
 	ws=EnxorGui()
