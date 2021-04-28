@@ -4,16 +4,23 @@
 ## Contents
 1. [Overview](#overview)
 2. [FPGA Utilization](#fpga-utilization)
-3. [Installation](#installation)
-4. [Run](#run)
-5. [Design Breakdown](#design-breakdown)
-6. [Specifications](#specifications)
-7. [Customize](#customize)
-8. [Potential Enhancements](#potential-enhancements)
-9. [Known Issues](#known-issues)
+3. [Warnings](#warnings)
+4. [Installation](#installation)
+5. [Run](#run)
+6. [Design Breakdown](#design-breakdown)
+7. [Specifications](#specifications)
+8. [Customize](#customize)
+9. [Potential Enhancements](#potential-enhancements)
+10. [Known Issues](#known-issues)
 ---
 ## Overview
 Electronic hobbyists, makers, and engineering students need low-cost and effective tools. One of these tools includes a logic analyzer for debugging digital designs. Unfortunately, there is a large gap in this market, professional grade logic analyzers start at a minimum of 400 dollars while the cheaper version is around 15 dollars but is extremely limited in functionality. There are no mid-tier options that meet the needs of the aforementioned. This project is an open-source design using FPGAs offering great performance. In addition, the design uses only Verilog source code, no IP cores or device specific features. This makes the design portable to any FPGA, you can adjust the number of input channels and memory depth very quickly. For the accompanying desktop application, Python is used to allow the GUI to work on most operating system.
+
+---
+## Warnings
+  * Caution: Connecting one or more of the input channels to voltages outside the range of your FPGA, even for a very short time, can result in permanent damage to either device.
+  * The input channels of the FPGA are not electrically isolated from each other, nor are they isolated from the PC.
+  * Be aware of ground loops! Read more about it [here](https://en.wikipedia.org/wiki/Ground_loop_%28electricity%29)
 
 ---
 ## FPGA Utilization
