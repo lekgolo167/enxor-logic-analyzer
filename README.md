@@ -82,6 +82,8 @@ Electronic hobbyists, makers, and engineering students need low-cost and effecti
 ---
 ## Design Breakdown
 This project consists of 7 major blocks to carry out a functional logic analyzer: a trigger controller, sample rate counter, memory buffer, control module, and UART communication.
+![System Block Diagram](./documentation/images/enexor_system_diagram.png)
+
 * ### Trigger Controller<br>
   This module is set to wait for a trigger condition on a user configurable channel. That condition can be either a falling or rising edge and is set in the GUI. A sample rate signal is used to tell the trigger controller when to shift new input data in. If the new data does not match the current data, then an event signal is sent out to other blocks. Once the trigger condition occurs, a triggered state signal is sent to the memory buffer.
   ![Trigger Controller Waveform Image](./documentation/images/trigger_controller_1.png)
