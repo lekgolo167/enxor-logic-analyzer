@@ -40,10 +40,11 @@ def configure_logic_analyzer(las):
 	# set scaler
 	# MSB
 	ser.write(SCALER_HEADER)
-	ser.write(bytes([(las.scaler>>8) & 0xFF]))
+	scaler = las.scaler - 1
+	ser.write(bytes([(scaler>>8) & 0xFF]))
 	# LSB
 	ser.write(SCALER_HEADER)
-	ser.write(bytes([(las.scaler-1) & 0xFF]))
+	ser.write(bytes([(scaler) & 0xFF]))
 	# set precapture memory size
 	# MSB
 	ser.write(PRECAP_SIZE)
@@ -57,7 +58,12 @@ def configure_logic_analyzer(las):
 	# trigger type
 	ser.write(TRIG_TYPE_HEADER)
 	ser.write(bytes([las.trigger_type]))
-
+	# set trigger delay enable
+	ser.write(TRIGGER_DELAY_ENABLE_HEADER)
+	ser.write(bytes([las.trigger_delay_enabled]))
+	# trigger delay time
+	ser.write(TRIGGER_DELAY_HEADER)
+	ser.write(bytes([las.trigger_delay]))
 	# ensure enable is off to start to reset the logic
 	ser.write(ENABLE_HEADER)
 	ser.write(b'\x00')
@@ -115,6 +121,7 @@ class AsyncReadSerial(Thread):
 					self.done = True
 					break
 				else:
+					print(b)
 					print("ERROR -- RECEIVED UNEXPECTED BYTE")
 					break
 

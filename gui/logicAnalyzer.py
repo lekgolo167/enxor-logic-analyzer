@@ -17,6 +17,8 @@
 import math
 import json
 
+TRIGGER_DELAY_ENABLE_HEADER = b'\xF7'
+TRIGGER_DELAY_HEADER = b'\xF8'
 SCALER_HEADER = b'\xFA'
 CHANNEL_HEADER = b'\xFB'
 TRIG_TYPE_HEADER = b'\xFC'
@@ -40,6 +42,8 @@ class LogicAnalyzerModel():
 		self.scaler = 1
 		self.channel = 0
 		self.trigger_type = TRIGGER_RISING_ENDGE
+		self.trigger_delay_enabled = 0
+		self.trigger_delay = 0
 		self.mem_depth = 0
 		self.precap_size = 4
 		self.pre_trigger_byte_count = 0
@@ -70,6 +74,10 @@ class LogicAnalyzerModel():
 			   + convert_sec_to_relavent_time(_min) + " - " \
 			   + convert_sec_to_relavent_time(_max)
 
+	def get_trigger_delay_string(self, trigger_delay):
+		delay_in_seconds = trigger_delay * self.get_samples_interval_in_seconds(self.scaler)
+		return convert_sec_to_relavent_time(delay_in_seconds)
+		
 	def initialize_from_config_file(self, file_path):
 		with open(file_path, 'r') as config_file:
 			obj = json.loads(config_file.read())

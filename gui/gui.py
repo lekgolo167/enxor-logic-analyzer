@@ -17,13 +17,11 @@
 from pathlib import Path
 
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk
+from tkinter import Checkbutton, messagebox
 from tkinter import filedialog
 
-import matplotlib.pyplot as plt
 import matplotlib
-from matplotlib.widgets import Slider
-from matplotlib.figure import Figure 
 from matplotlib.backends.backend_tkagg import (FigureCanvasTkAgg,  NavigationToolbar2Tk) 
 matplotlib.use('TkAgg') 
 
@@ -97,7 +95,6 @@ class MenuBar(tk.Menu):
 			pass
 
 	def set_serial_port(self, name):
-		print("Selected port: " + name)
 		self.logic_analyzer.port = name
 		if self.enxor_status_strvar.get() == "UNCONNECTED":
 			self.enxor_status_strvar.set("READY")
@@ -189,6 +186,7 @@ class EnxorGui(tk.Tk):
 
 		self.time_measurement = tk.StringVar(value='---')
 		self.samples = [1,2,5,10,50,100,250,500,1000]
+		self.delays = [5,15,50,100,150,200,250]
 
 		if self.logic_analyzer.scaler not in self.samples:
 			self.samples.insert(0, self.logic_analyzer.scaler)
@@ -196,6 +194,10 @@ class EnxorGui(tk.Tk):
 		self.sample_divisors = [self.logic_analyzer.get_min_max_string(x) for x in self.samples]
 		self.sample_divisor = tk.StringVar(value=self.sample_divisors[0])
 		self.sample_divisor.trace('w', self.sample_rate_dropdown)
+
+		self.trigger_delays = [self.logic_analyzer.get_trigger_delay_string(x) for x in self.delays]
+		self.trigger_delay = tk.StringVar(value=self.trigger_delays[0])
+		self.trigger_delay.trace('w', self.trigger_delay_dropdown)
 
 		self.precapture_percentages = [str(x)+" %" for x in range(10,100, 10)]
 		self.precapture_size = tk.StringVar(value=self.precapture_percentages[0])
@@ -208,6 +210,9 @@ class EnxorGui(tk.Tk):
 		self.trigger_types = ['Falling', 'Rising']
 		self.trigger_type = tk.StringVar(value=self.trigger_types[self.logic_analyzer.trigger_type])
 		self.trigger_type.trace('w', self.trigger_type_dropdown)
+
+		self.trigger_delay_enabled = tk.IntVar(value=0)
+		self.trigger_delay_enabled.trace('w', self.trigger_delay_enable_click)
 
 		self.menubar = MenuBar(self, self.time_measurement, self.enxor_status, self.logic_analyzer)
 		self.config(menu=self.menubar)
@@ -224,6 +229,13 @@ class EnxorGui(tk.Tk):
 	def sample_rate_dropdown(self, *args):
 		index = self.sample_divisors.index(self.sample_divisor.get())
 		self.menubar.logic_analyzer.scaler = self.samples[index]
+		self.trigger_delays = [self.logic_analyzer.get_trigger_delay_string(x) for x in self.delays]
+		self.trigger_delay_entry['values'] = self.trigger_delays
+		self.trigger_delay_entry.set(self.trigger_delays[0])
+		self.trigger_delay_dropdown(None)
+
+	def trigger_delay_dropdown(self, *args):
+		self.menubar.logic_analyzer.trigger_delay = self.delays[self.trigger_delay_entry.current()]
 
 	def precapture_percentages_dropdown(self, *args):
 		percentage = (self.precapture_percentages.index(self.precapture_size.get()) + 1) * 0.1
@@ -235,6 +247,9 @@ class EnxorGui(tk.Tk):
 
 	def trigger_type_dropdown(self, *args):
 		self.menubar.logic_analyzer.trigger_type = self.trigger_types.index(self.trigger_type.get())
+
+	def trigger_delay_enable_click(self, *args):
+		self.menubar.logic_analyzer.trigger_delay_enabled = self.trigger_delay_enabled.get()
 
 	def create_header_frame(self):
 			
@@ -260,6 +275,16 @@ class EnxorGui(tk.Tk):
 		sample_divisor_label.grid(row=0, column=6, pady=(5, 0), sticky='nw')
 		sample_divisor_entry = tk.OptionMenu(header, self.sample_divisor, *self.sample_divisors)
 		sample_divisor_entry.grid(row=0, column=7)
+
+		trigger_delay_enable_checkbox = Checkbutton(header, text="Trigger Delay Enable", variable=self.trigger_delay_enabled)
+		trigger_delay_enable_checkbox.grid(row=0, column=8, pady=(5,0), sticky='nw')
+
+		trigger_delay_label = tk.Label(header, text="Delay")
+		trigger_delay_label.grid(row=0, column=9, pady=(5, 0), sticky='nw')
+		self.trigger_delay_entry = ttk.Combobox(header, values=self.trigger_delays, state='readonly')
+		self.trigger_delay_entry.set(self.trigger_delays[0])
+		self.trigger_delay_entry.bind("<<ComboboxSelected>>", self.trigger_delay_dropdown)
+		self.trigger_delay_entry.grid(row=0, column=10)
 
 	def create_waveform_window(self):
 
@@ -288,5 +313,5 @@ class EnxorGui(tk.Tk):
 if __name__ == "__main__":
 	ws=EnxorGui()
 	ws.title('Enxor Logic Analyzer')
-	ws.geometry('900x800')
+	ws.geometry('1100x800')
 	ws.mainloop()

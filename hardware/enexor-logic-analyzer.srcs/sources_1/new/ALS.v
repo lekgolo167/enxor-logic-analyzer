@@ -60,7 +60,7 @@ module ALS(
         .SCLK(SCLK),
         .CS(CS),
         .d_rdy(d_rdy),
-        .d(led)
+        .d(d)
     );
     
     assign led = d[12:5];

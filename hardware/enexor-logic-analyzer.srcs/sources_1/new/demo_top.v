@@ -35,10 +35,9 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module demo_top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, parameter MEM_DEPTH = 8192)(
+module demo_top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, parameter MEM_DEPTH = 4096)(
     input i_sys_clk,
     input i_rstn,
-    input [4:0] i_raw_sig,
     input MISO,
     input i_rx,
     output o_triggered_led,
@@ -46,20 +45,21 @@ module demo_top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, paramet
     output o_tx,
     output SCLK,
     output CS,
-    output [7:0] led
+    output [2:0] RGB
 );
     
     wire [DATA_WIDTH-1:0] w_channels;
     wire [PACKET_WIDTH-1:0] w_data;
     wire [$clog2(MEM_DEPTH)-1:0] w_precap_depth;
     wire [$clog2(DATA_WIDTH)-1:0] w_channel_select;
-    wire [7:0] w_time, w_tx_byte, w_rx_byte;
+    wire [7:0] w_time, w_tx_byte, w_rx_byte, trigger_delay, led;
     wire [15:0] w_scaler;
     wire w_sample_clk_posedge, w_triggered_state, w_rollover, w_event, w_trig_pulse, w_rstn, w_buffer_full, w_finished_read, w_trigger_type;
-    wire w_r_ack, w_enable, w_start_read, w_t_rdy, w_tx_DV, w_rx_DV, w_tx_done, w_post_read, w_stop;
+    wire w_r_ack, w_enable, w_start_read, w_t_rdy, w_tx_DV, w_rx_DV, w_tx_done, w_post_read, w_stop, trigger_delay_en;
     
     assign o_triggered_led = w_triggered_state;
     assign o_enabled = w_enable;
+    assign RGB = led[5:3];
     
     Reset_Sync RST(
         .i_sys_clk(i_sys_clk),
@@ -80,7 +80,7 @@ module demo_top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, paramet
     
     Pulse_Sync #(.DATA_WIDTH(DATA_WIDTH))PS (
         .i_sys_clk(i_sys_clk),
-        .i_async({i_raw_sig, SCLK, MISO,CS}),
+        .i_async({led[6:2], SCLK, MISO,CS}),
         .o_sync(w_channels)
     );
     
@@ -107,6 +107,8 @@ module demo_top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, paramet
         .i_trigger_type(w_trigger_type),
         .i_enable(w_enable),
         .i_sample_clk_posedge(w_sample_clk_posedge),
+        .i_trigger_delay_en(trigger_delay_en),
+        .i_trigger_delay(trigger_delay),
         .o_triggered_state(w_triggered_state),
         .o_event_pulse(w_event)
         );
@@ -145,6 +147,8 @@ module demo_top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, paramet
         .o_precap_depth(w_precap_depth),
         .o_channel_select(w_channel_select),
         .o_trigger_type(w_trigger_type),
+        .o_trigger_delay_en(trigger_delay_en),
+        .o_trigger_delay(trigger_delay),
         .o_enable(w_enable),
         .o_r_ack(w_r_ack),
         .o_start_read(w_start_read),
@@ -153,7 +157,7 @@ module demo_top #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, paramet
         .o_tx_byte(w_tx_byte)
     );
     
-    uart #(.CLKS_PER_BIT(868)) USB (
+    uart #(.CLKS_PER_BIT(104)) USB (
         .i_sys_clk(i_sys_clk),
         .i_Rx_Serial(i_rx),
         .i_Tx_DV(w_tx_DV),

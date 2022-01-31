@@ -42,6 +42,8 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     input i_trigger_type,
     input i_enable,
     input i_sample_clk_posedge,
+    input i_trigger_delay_en,
+    input [7:0] i_trigger_delay,
     output o_triggered_state,
     output o_event_pulse
     );
@@ -49,9 +51,11 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     reg [DATA_WIDTH-1:0] r_last;
     reg r_trigger_event;
     wire pe, ne, w_trigger_pulse;
+    reg [7:0] trigger_delay_count;
+    wire delayed_trigger_event;
     
     assign w_trigger_pulse = ((pe & i_trigger_type) | (ne & ~i_trigger_type)) & i_enable;
-    assign o_triggered_state = r_trigger_event;
+    assign o_triggered_state = i_trigger_delay_en ? delayed_trigger_event : r_trigger_event;
     assign o_event_pulse = (r_last != i_data) & i_sample_clk_posedge;
     
     always @(posedge i_sys_clk) begin
@@ -73,5 +77,18 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
             r_trigger_event <= 1;
         end
     end // End always
+    
+    // trigger delay if enabled
+    assign delayed_trigger_event = (trigger_delay_count == i_trigger_delay);
+    always @(posedge i_sys_clk) begin
+        if (r_trigger_event) begin
+            if (i_sample_clk_posedge) begin
+                trigger_delay_count <= trigger_delay_count + 1;
+            end
+        end
+        else begin
+            trigger_delay_count <= 0;
+        end
+    end
     
 endmodule
