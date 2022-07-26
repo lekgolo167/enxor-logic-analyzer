@@ -50,6 +50,7 @@ class LogicAnalyzerModel():
 		self.post_trigger_byte_count = 0
 		self.total_time_units = 0
 		self.channel_data = []
+		self.compressed_data = []
 		self.timestamps = []
 		self.x_axis = []
 		self.num_channels = 0
@@ -117,86 +118,42 @@ class LogicAnalyzerModel():
 			
 
 def write_logic_analyzer_data_to_file(file_path, la):
+	with open(file_path, 'w') as capture_file:
+		print(f'pre cap {la.pre_trigger_byte_count}')
+		capture = {
+			'clk-freq': la.clk_freq,
+			'mem-depth': la.mem_depth,
+			'precap-size': la.pre_trigger_byte_count,
+			'num-channels': la.num_channels,
+			'trig-channel': la.channel,
+			'scaler': la.scaler,
+			'trig-point': la.x_axis[la.pre_trigger_byte_count-1],
+			'timestamps': la.x_axis,
+			'channel-data': la.compressed_data
+		}
 
-	with open(file_path, 'wb') as binary_file:
-		# set 1st byte to number of channels
-		binary_file.write(bytes([la.num_channels]))
-		# set 2nd byte to trigger channel
-		binary_file.write(bytes([la.channel]))
-		# set 3rd byte to the memory depth
-		binary_file.write(bytes([int(math.log2(la.mem_depth))]))
-		# set bytes 4 - 7 to the clock frequency
-		binary_file.write(la.clk_freq.to_bytes(4,byteorder='little'))
-		# set bytes 8 and 9 to the sample rate
-		binary_file.write(la.scaler.to_bytes(2,byteorder='little'))
-
-		# format: <TYPE> <N_DATA_BYTES> <TIMESTAMP>
-		for entry_num in range(la.pre_trigger_byte_count + la.post_trigger_byte_count):
-			# set the data type
-			if entry_num < la.pre_trigger_byte_count:
-				binary_file.write(PRE_BUFFER_HEADER)
-			else:
-				binary_file.write(POST_BUFFER_HEADER)
-
-			# runs for the number of bytes needed; 8 channels = once, 16 channels = twice
-			for offset in range(0, la.num_channels,8):
-				byte = 0
-				for bit in range(8):
-					# combine separate channel data lists into one byte for each index
-					byte = byte | (la.channel_data[offset+bit][entry_num] << bit)
-
-				binary_file.write(bytes([byte]))
-
-			# set the timestamp
-			binary_file.write(bytes([la.timestamps[entry_num]]))
+		json.dump({'capture':capture},capture_file)
 
 def read_logic_analyzer_data_from_file(file_path):
-
-	with open(file_path, 'rb') as binary_file:
+	with open(file_path, 'r') as capture_file:
+		capture = json.loads(capture_file.read())['capture']
 		la = LogicAnalyzerModel()
-
-		# read 1st byte to get number of channels
-		la.num_channels = ord(binary_file.read(1))
-		la.bytes_per_row = (la.num_channels // 8) + 2
-		# read 2nd byte to get trigger channel
-		la.channel = ord(binary_file.read(1))
-		# read 3rd byte for the memory depth
-		la.mem_depth = int(math.pow(2 ,ord(binary_file.read(1))))
-		# read bytes 4 - 7 for the clock frequency
-		la.clk_freq = int.from_bytes(binary_file.read(4), 'little')
-		# read bytes 8 and 9 for the sample rate
-		la.scaler = int.from_bytes(binary_file.read(2), 'little')
+		la.clk_freq = capture.get('clk-freq')
+		la.mem_depth = capture.get('mem-depth')
+		la.pre_trigger_byte_count = capture.get('precap-size')
+		la.num_channels = capture.get('num-channels')
+		la.channel = capture.get('trig-channel')
+		la.scaler = capture.get('scaler')
+		la.x_axis =capture.get('timestamps')
+		la.compressed_data = capture.get('channel-data')
 
 		for _ in range(la.num_channels):
 			la.channel_data.append([])
 		
-		# if there are less bytes than the memory size, 'with open' just closes without crashing
-		for _ in range(la.mem_depth):
-			byte_header = binary_file.read(1)
-
-			if not byte_header:
-				break
-			elif byte_header == PRE_BUFFER_HEADER:
-				la.pre_trigger_byte_count += 1
-			elif byte_header == POST_BUFFER_HEADER:
-				la.post_trigger_byte_count += 1
-			else:
-				# This will realign the bytes to get correct offset
-				continue
-
-			# runs for the number of bytes needed; 8 channels = once, 16 channels = twice
-			for offset in range(0, la.num_channels, 8):
-				current_byte = binary_file.read(1)
-				data = ord(current_byte)
-
-				for bit in range(8):
-					# separate the byte into each individual channel
-					la.channel_data[bit+offset].append((data >> bit) & 1)
-
-			timestamp = ord(binary_file.read(1))
-			la.timestamps.append(timestamp)
-			la.total_time_units += timestamp
-			la.x_axis.append(la.total_time_units)
+		for data in la.compressed_data:
+			for bit in range(la.num_channels):
+				# separate the byte into each individual channel
+				la.channel_data[bit].append((data >> bit) & 1)
 
 		return la
 

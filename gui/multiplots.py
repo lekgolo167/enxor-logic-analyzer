@@ -55,6 +55,39 @@ class MultiPlot():
 			print(e)
 			print('ERROR - failed to zoom')
 
+	def find_nearest_transistion_point(self, chan, x_event_point):
+		print(f'CH: {chan} - x: {x_event_point}')
+		best = self.x_axis[0]
+		best_i = 0
+		best_diff = abs(x_event_point-best)
+		for i, tstamp in enumerate(self.x_axis):
+			diff = abs(x_event_point-tstamp)
+			if diff < best_diff:
+				best_diff = diff
+				best_i = i
+		#click_point = int((x_event_point/self.total_time_units)*self.num_x_points)
+		#pivot_point = min(self.num_x_points-1, click_point)
+		pivot_point = best_i
+		init_v = self.channel_data[chan][pivot_point]
+		print(f'click index {pivot_point} - time: {self.x_axis[pivot_point]}')
+		print(f'val: {init_v}')
+		left = pivot_point - 1
+		right = pivot_point + 1
+		transition_point = pivot_point
+		while left >= 0 and right < self.num_x_points:
+			if self.channel_data[chan][left] != init_v:
+				transition_point = left
+				print('found on left of click')
+				break
+			elif self.channel_data[chan][right] != init_v:
+				transition_point = right
+				print('found on right of click')
+				break
+			left -= 1
+			right += 1
+
+		return self.x_axis[transition_point]
+
 	def zoom(self, event):
 		if event.button == 'up': # IN
 			self.zoom_level = self.zoom_level * 0.9
@@ -72,13 +105,17 @@ class MultiPlot():
 	def on_click(self, event):
 		if not event.inaxes:
 			return
+		channel_num = event.inaxes.get_subplotspec().rowspan.start
+		tp = self.find_nearest_transistion_point(channel_num, event.xdata)
+		print(f'Transition point = {tp}')
+		self.axs[channel_num].axvline(x=tp, color='green', linestyle ="--", linewidth=2)
 
 		if self.is_first_coord: # set x1
 			self.is_first_coord = False
-			self.x1 = event.xdata
+			self.x1 = tp
 		else: # set x2
 			self.is_first_coord = True
-			self.x2 = event.xdata
+			self.x2 = tp
 
 			# find the difference then multiply by the time scaler
 			seconds = abs(self.x1 - self.x2) * self.to_Seconds
@@ -93,7 +130,7 @@ class MultiPlot():
 
 		for x in range(self.num_channels):
 				# constants -0.1 and 1.2 lock the y-axis from moving
-			self.axs[x].axis([0,self.total_time_units,-0.1,1.2])
+			self.axs[x].axis([260900,261300,-0.1,1.2])
 
 		self.fig.canvas.draw_idle()
 
@@ -103,7 +140,11 @@ class MultiPlot():
 		self.to_Seconds = las.get_samples_interval_in_seconds(las.scaler)
 		self.num_channels = las.num_channels
 		self.total_time_units = las.total_time_units
-
+		self.x_axis = las.x_axis
+		self.channel_data = []
+		for channel in las.channel_data:
+			self.channel_data.append(channel)
+		self.num_x_points = len(las.x_axis)
 		fig, axs = plt.subplots(las.num_channels, sharex=True, sharey=True)
 		self.fig = fig
 		self.axs = axs
