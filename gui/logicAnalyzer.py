@@ -119,7 +119,6 @@ class LogicAnalyzerModel():
 
 def write_logic_analyzer_data_to_file(file_path, la):
 	with open(file_path, 'w') as capture_file:
-		print(f'pre cap {la.pre_trigger_byte_count}')
 		capture = {
 			'clk-freq': la.clk_freq,
 			'mem-depth': la.mem_depth,
@@ -144,7 +143,8 @@ def read_logic_analyzer_data_from_file(file_path):
 		la.num_channels = capture.get('num-channels')
 		la.channel = capture.get('trig-channel')
 		la.scaler = capture.get('scaler')
-		la.x_axis =capture.get('timestamps')
+		la.x_axis = capture.get('timestamps')
+		la.total_time_units = la.x_axis[-1]
 		la.compressed_data = capture.get('channel-data')
 
 		for _ in range(la.num_channels):
@@ -197,8 +197,8 @@ def read_input_stream(byte_arr, las):
 		las.total_time_units += timestamp
 		las.x_axis.append(las.total_time_units)
 
-	print(las.pre_trigger_byte_count)
-	print(las.post_trigger_byte_count)
+	print(f'Precaptured bytes - {las.pre_trigger_byte_count}')
+	print(f'Postcaptured bytes - {las.post_trigger_byte_count}')
 	return las
 
 def convert_sec_to_relavent_time(seconds):
