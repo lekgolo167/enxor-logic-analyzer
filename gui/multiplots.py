@@ -35,75 +35,109 @@ class MultiPlot():
 		self.time_measurement_strvar = time_measurement_strvar
 
 	def update(self, val):
+		for x in range(self.num_channels):
+			# constants -0.1 and 1.2 lock the y-axis from moving
+			self.axs[x].axis([self.zoom_left, self.zoom_right,-0.1,1.2])
 
-		try:
+		self.fig.canvas.draw_idle()
 
-			left = val - self.zoom_level
-			right = val + self.zoom_level
-			if left < 0.0:
-				left = 0.0
-			if right > self.total_time_units:
-				right = self.total_time_units
+	def find_nearest_transistion_point(self, chan, x_event_point):
+		x_event_point = int(x_event_point)
+		transition_point = 0
+		t_click = self.x_axis[0]
+		for i, tstamp in enumerate(self.x_axis):
+			if x_event_point <= tstamp:
+				transition_point = i
+				t_click = tstamp
+				break
+		if abs(x_event_point-self.x_axis[transition_point-1]) < abs(t_click - x_event_point):
+			transition_point -= 1
+			t_click = self.x_axis[transition_point]
+		click_value = self.channel_data[chan][transition_point]
 
-			for x in range(self.num_channels):
-				# constants -0.1 and 1.2 lock the y-axis from moving
-				self.axs[x].axis([left,right,-0.1,1.2])
+		left = transition_point - 1
+		right = transition_point + 1
 
-			self.fig.canvas.draw_idle()
+		while left >= 0 and right < self.num_x_points:
+			t_left = self.x_axis[left]
+			t_right = self.x_axis[right]
+			if abs(t_click - t_left) < abs(t_click - t_right):
+				left_v = self.channel_data[chan][left]
+				if left_v != click_value:
+					transition_point = left + 1
+					break
+				left -= 1
+			else:
+				right_v = self.channel_data[chan][right]
+				if right_v != click_value:
+					transition_point = right
+					break
+				right += 1
 
-		except Exception as e:
-			print(e)
-			print('ERROR - failed to zoom')
+		return self.x_axis[transition_point]
 
 	def zoom(self, event):
+		if event is None or event.xdata is None:
+			return
+		diff_left = abs(self.zoom_left - event.xdata)
+		diff_right = abs(self.zoom_right - event.xdata)
 		if event.button == 'up': # IN
-			self.zoom_level = self.zoom_level * 0.9
+			zoom = 0.9
 		elif event.button == 'down': # OUT
-			self.zoom_level = self.zoom_level * 1.1
-		else:
-			self.zoom_level = self.total_time_units
+			zoom = 1.1
 		
-		if self.zoom_level > self.total_time_units:
-			# zoomed out further than the axis goes, reset
-			self.zoom_level = self.total_time_units
+		self.zoom_left = max(abs(event.xdata - (diff_left * zoom)), 0)
+		self.zoom_right = min(abs(event.xdata + (diff_right * zoom)), self.total_time_units)
 
 		self.update(event.xdata)
 
 	def on_click(self, event):
 		if not event.inaxes:
 			return
-
+		channel_num = event.inaxes.get_subplotspec().rowspan.start
+		tp = self.find_nearest_transistion_point(channel_num, event.xdata)
 		if self.is_first_coord: # set x1
 			self.is_first_coord = False
-			self.x1 = event.xdata
+			self.x1 = tp
+			for chan in range(self.num_channels):
+				for line in self.axs[chan].get_lines()[1:]:
+					if line.get_color() == 'green':
+						line.remove()
 		else: # set x2
 			self.is_first_coord = True
-			self.x2 = event.xdata
+			self.x2 = tp
 
 			# find the difference then multiply by the time scaler
 			seconds = abs(self.x1 - self.x2) * self.to_Seconds
-
 			time_measurement = convert_sec_to_relavent_time(seconds)
-
 			self.time_measurement_strvar.set(time_measurement)
+
+		self.axs[channel_num].axvline(x=tp, color='green', linestyle ="--", linewidth=2)
+		self.fig.canvas.draw_idle()
 
 	def reset(self, event):
 		self.spos.reset()
-		self.zoom_level = self.total_time_units
+		self.zoom_left = 0
+		self.zoom_right = self.total_time_units
 
 		for x in range(self.num_channels):
 				# constants -0.1 and 1.2 lock the y-axis from moving
-			self.axs[x].axis([0,self.total_time_units,-0.1,1.2])
+			self.axs[x].axis([self.zoom_left,self.zoom_right,-0.1,1.2])
 
 		self.fig.canvas.draw_idle()
 
 	def plot_captured_data(self, name, las, ws):
 
-		self.zoom_level = las.total_time_units
+		self.zoom_left = 0
+		self.zoom_right = las.total_time_units
 		self.to_Seconds = las.get_samples_interval_in_seconds(las.scaler)
 		self.num_channels = las.num_channels
 		self.total_time_units = las.total_time_units
-
+		self.x_axis = las.x_axis
+		self.channel_data = []
+		for channel in las.channel_data:
+			self.channel_data.append(channel)
+		self.num_x_points = len(las.x_axis)
 		fig, axs = plt.subplots(las.num_channels, sharex=True, sharey=True)
 		self.fig = fig
 		self.axs = axs

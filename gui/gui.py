@@ -103,32 +103,39 @@ class MenuBar(tk.Menu):
 		filename = filedialog.asksaveasfilename(initialdir = "/", title = "Select file", 
 												filetypes = (("json files","*.json"),("all files","*.*")))
 		if filename != "":
+			if not filename.endswith('.json'):
+					filename = filename + '.json'
 			self.logic_analyzer.save_to_config_file(filename)
 
 	def open_configuration(self):
 		filename = filedialog.askopenfilename(initialdir = "/", title = "Select file",
 											  filetypes = (("json files","*.json"),("all files","*.*")))
-		valid = None
 		if filename != "":
 			valid = self.logic_analyzer.initialize_from_config_file(filename)
-		if not valid:
-			self.capture_menu.entryconfig(0, state='disabled')
-			messagebox.showinfo('Invalid Configuration',
-								"The following fields are required: 'mem_depth', 'clk_freq', 'num_channels")
-		else:
-			self.capture_menu.entryconfig(0, state='normal')
+			if not valid:
+				self.capture_menu.entryconfig(0, state='disabled')
+				messagebox.showinfo('Invalid Configuration',
+									"The following fields are required: 'mem_depth', 'clk_freq', 'num_channels")
+			else:
+				self.capture_menu.entryconfig(0, state='normal')
 
 	def save_capture(self):
 		filename = filedialog.asksaveasfilename(initialdir = "/", title = "Select file",
-												filetypes = (("binary files","*.bin"),("all files","*.*")))
-		write_logic_analyzer_data_to_file(filename, self.logic_analyzer)
+												filetypes = (("Captures","*.xor"),("all files","*.*")))
+		if filename != "":
+			if self.logic_analyzer.total_time_units == 0:
+				messagebox.showinfo('No Live Capture', 'There is no live caputred data to save.')
+			else:
+				if not filename.endswith('.xor'):
+					filename = filename + '.xor'
+				write_logic_analyzer_data_to_file(filename, self.logic_analyzer)
 
 	def open_capture(self):
 		filename = filedialog.askopenfilename(initialdir = "/", title = "Select file",
-											  filetypes = (("binary files","*.bin"),("all files","*.*")))
-		logic_analyzer = read_logic_analyzer_data_from_file(filename)
-
-		self.add_plot_to_window(Path(filename).parts[-1], logic_analyzer)
+											  filetypes = (("Captures","*.xor"),("all files","*.*")))
+		if filename != "":
+			logic_analyzer = read_logic_analyzer_data_from_file(filename)
+			self.add_plot_to_window(Path(filename).parts[-1], logic_analyzer)
 
 	def monitor(self):
 
@@ -240,7 +247,6 @@ class EnxorGui(tk.Tk):
 	def precapture_percentages_dropdown(self, *args):
 		percentage = (self.precapture_percentages.index(self.precapture_size.get()) + 1) * 0.1
 		self.menubar.logic_analyzer.precap_size = int(self.menubar.logic_analyzer.mem_depth * percentage)
-		print(self.menubar.logic_analyzer.precap_size)
 
 	def trigger_channel_dropdown(self, *args):
 		self.menubar.logic_analyzer.channel = self.trigger_channels.index(self.trigger_channel.get())

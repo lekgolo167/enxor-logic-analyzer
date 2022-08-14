@@ -27,8 +27,9 @@ Electronic hobbyists, makers, and engineering students need low-cost and effecti
   | Manufacture | Family | Device | Frequency | WNS | LUT | FF | Channels | Memory Depth
   | --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- | --------- |
   | Xilinx | Artix-7 | xc7a35tcpg236-1 | 100MHz | 4.313 | 198 | 223 | 8 | 4096
-  | Xilinx | Artix-7 | xc7a35tcpg236-1 | 100MHz | 4.271 | 201 | 228 | 8 | 8192
-  | Xilinx | Artix-7 | xc7a35tcpg236-1 | 100MHz | 4.098 | 200 | 240 | 16 | 4096
+  | - | - | - | - | 4.271 | 201 | 228 | 8 | 8192
+  | - | - | - | - | 4.098 | 200 | 240 | 16 | 4096
+  | Xilinx | Spartan-7 | xc7s15ftgb196-1 | 100MHz | 3.917 | 197 | 219 | 8 | 4096
   | Altera | Cyclone IV | EP4CE10F17C8N | 50MHz | 10.729 | 404 | 238 | 8 | 8192
   | Lattice | iCE40 | LP8K | 16MHz | x | 665 | 234 | 8 | 8192
   
@@ -112,7 +113,7 @@ Data sent back to the host PC has a relative sample time count byte. Each time u
   * ```min_record_time = memory_depth / (clock_freq/sample_divisor)```
   * ```max_record_time = (max_timestamp_value * memory_depth) / (clock_freq/sample_divisor)```
 * Config Format<br>
-Current settings can be saved or loaded from a ```json``` file. The following table explains what each field is and if it is required.
+Current settings can be saved or loaded from a ```.json``` file. The following table explains what each field is and if it is required.
   | Field | Description | Default | Required |
   | --------- | --------- | --------- | --------- |
   | baud_rate   | the baud rate of the FPGA UART | 115200 | N
@@ -126,22 +127,25 @@ Current settings can be saved or loaded from a ```json``` file. The following ta
   | num_channels | the number of input channels to the FPGA | N/A | Y
 
 * Saved Capture File Format<br>
-  Several logic anaylzer settings are saved along with the captured data to a bin file. The following table shows the byte ordering.
-  | Byte | Description | 
+  Captures in the GUI can be saved in a JSON formate with a ```.xor``` file extension. The following table shows the JSON format for captures. These files used to be saved as a binary file but was more difficult to deal with. JSON files are much bigger however (24 kb vs. 150 kb), but this does not really matter on modern computers.
+  | Field | Description | 
   | --------- | --------- |
-  | 1 | number of input channels |
-  | 2 | trigger channel |
-  | 3 | exponent for base 2 to get the memory buffer depth |
-  | 4-7 | the FPGA clock frequency in Hertz, stored in little-endian |
-  | 8-9 | the sample rate the data was captured at, stored in little-endian |
-  The remaining bytes follow the next subsection's format.
+  | clk_freq | the clock frequency of the FPGA design in Hertz |
+  | mem_depth | the depth of the memory buffer |
+  | precap_size | number of rows in the buffer that will be used for data captured before a trigger condition |
+  | num_channels | the number of input channels to the FPGA |
+  | trig_channel | the channel to watch for a trigger condition |
+  | scaler | the sample rate based on the clock frequency |
+  | trig-point | timestamp of when the trigger point occured |
+  | timestamps | list of timestamps (accumulating) |
+  | channel-data | list of bit packed channel data. Is bit masked out for graphing |
 
 * Captured data transmitted to host PC from the FPGA.
   | Byte | Description | 
   | --------- | --------- |
   | 1 | indicates if the following data is captured before or after the tigger point <br> Precapture = ```0xA1``` <br> PostCapture = ```0xA3``` |
   | N | The next byte(s) is the captured data. The number of bytes is given by the number of channels divided by 8 |
-  | 3 | Last byte contains the count of the sample clock ticks fo the dat. The timestamps ranges are ```1-255``` |
+  | 3 | Last byte contains the count of the sample clock ticks for the sampled data. The timestamps ranges are ```1-255``` |
 
 ---
 ## Customize
@@ -162,4 +166,7 @@ Current settings can be saved or loaded from a ```json``` file. The following ta
   * Status: Resolved
 * If a trigger condition occurs within microseconds after being enabled, the gui cannot get the serial port open intime to catch all the data.
   * Potential fix: have Enxor signal the host PC that the buffer is full then wait for a read command before sending captured data.
+  * Status: Resolved
+* Zooming in and out can jump around quite a lot
+  * Potential fix: use a percentage of the left and right window x axis values to know how much to move the window in or out.
   * Status: Resolved
