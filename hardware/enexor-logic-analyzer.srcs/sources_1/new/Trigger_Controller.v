@@ -39,24 +39,32 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     input i_sys_clk,
     input [DATA_WIDTH-1:0] i_data,
     input [$clog2(DATA_WIDTH)-1:0] i_channel_select,
-    input i_trigger_type,
+    input [1:0]  i_trigger_type,
     input i_enable,
     input i_sample_clk_posedge,
-    input i_trigger_delay_en,
-    input [7:0] i_trigger_delay,
-    output o_triggered_state,
+    output reg o_triggered_state,
     output o_event_pulse
     );
     
+    localparam FALLING_EDGE = 2'b00;
+    localparam RISING_EDGE = 2'b01;
+    localparam LEVEL_LOW = 2'b10;
+    localparam LEVEL_HIGH = 2'b11;
+
     reg [DATA_WIDTH-1:0] r_last;
     reg r_trigger_event;
-    wire pe, ne, w_trigger_pulse;
-    reg [7:0] trigger_delay_count;
-    wire delayed_trigger_event;
+    wire pe, ne, w_edge_trigger, w_level_trigger;
     
-    assign w_trigger_pulse = ((pe & i_trigger_type) | (ne & ~i_trigger_type)) & i_enable;
-    assign o_triggered_state = i_trigger_delay_en ? delayed_trigger_event : r_trigger_event;
-    assign o_event_pulse = (r_last != i_data) & i_sample_clk_posedge;
+    // Posedge detection
+    assign pe = i_data[i_channel_select] & ~r_last[i_channel_select];
+    // Negedge detection
+    assign ne = ~i_data[i_channel_select] & r_last[i_channel_select];
+
+    assign w_edge_trigger = (pe == 1'b1) || (ne == 1'b1);
+    assign w_level_trigger = (i_data[i_channel_select] == 1'b1 && i_trigger_type == LEVEL_HIGH) || (i_data[i_channel_select] == 1'b0 && i_trigger_type == LEVEL_LOW)
+    
+    assign o_event_pulse = (r_last != i_data) & i_sample_clk_posedge & o_triggered_state;
+    
     
     always @(posedge i_sys_clk) begin
         if (i_sample_clk_posedge || !i_enable) begin
@@ -64,31 +72,23 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
         end
     end // End always
     
-    // Posedge detection
-    assign pe = i_data[i_channel_select] & ~r_last[i_channel_select];
-    // Negedge detection
-    assign ne = ~i_data[i_channel_select] & r_last[i_channel_select];
     
     always @(posedge i_sys_clk) begin
         if (!i_enable) begin
-            r_trigger_event <= 0;
+            o_triggered_state <= 0;
         end
-        else if (i_enable & w_trigger_pulse & i_sample_clk_posedge) begin
-            r_trigger_event <= 1;
+        else if (i_sample_clk_posedge == 1'b1) begin
+            case (i_trigger_type)
+                FALLING_EDGE, RISING_EDGE: begin
+                    if (w_edge_trigger) begin
+                        o_triggered_state <= 1;
+                    end
+                end
+                LEVEL_LOW, LEVEL_HIGH: begin
+                    o_triggered_state <= w_level_trigger;
+                end 
+            endcase
         end
     end // End always
-    
-    // trigger delay if enabled
-    assign delayed_trigger_event = (trigger_delay_count == i_trigger_delay);
-    always @(posedge i_sys_clk) begin
-        if (r_trigger_event) begin
-            if (i_sample_clk_posedge) begin
-                trigger_delay_count <= trigger_delay_count + 1;
-            end
-        end
-        else begin
-            trigger_delay_count <= 0;
-        end
-    end
     
 endmodule

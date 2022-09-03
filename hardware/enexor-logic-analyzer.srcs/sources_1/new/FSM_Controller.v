@@ -51,8 +51,6 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
     output reg [$clog2(MEM_DEPTH)-1:0] o_precap_depth,
     output reg [$clog2(DATA_WIDTH)-1:0] o_channel_select,
     output reg o_trigger_type,
-    output reg o_trigger_delay_en,
-    output reg [7:0] o_trigger_delay,
     output reg o_enable,
     output o_r_ack,
     output reg o_start_read,
@@ -80,8 +78,6 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
     localparam s_VALUE =    2'b01;
     localparam s_SAVE =     2'b10;
     
-    localparam SET_TRIG_DELAY_EN =  8'hF7;
-    localparam SET_TRIG_DELAY =     8'hF8;
     localparam SET_START_READ =     8'hF9;
     localparam SET_SCALER =         8'hFA;
     localparam SET_CHANNEL =        8'hFB;
@@ -167,14 +163,6 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
                     SET_STOP:
                         begin
                             o_stop <= paramByte[0];
-                        end
-                    SET_TRIG_DELAY:
-                        begin
-                            o_trigger_delay <= paramByte;
-                        end
-                    SET_TRIG_DELAY_EN:
-                        begin
-                            o_trigger_delay_en <= paramByte[0];
                         end
                 endcase
             end
