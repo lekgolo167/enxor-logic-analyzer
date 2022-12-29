@@ -138,7 +138,7 @@ module Data_Buffers_Programmable #(parameter PACKET_WIDTH = 16, MEM_DEPTH = 16)(
                             o_buffer_full <= 1;
                             r_wr_en <= 0;
                         end
-                        else if (i_event) begin
+                        else if (i_event && i_triggered_state) begin
                             r_wr_adr <= r_wr_adr + 1;
                         end
                     end

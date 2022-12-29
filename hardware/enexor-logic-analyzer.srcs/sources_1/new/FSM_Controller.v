@@ -50,7 +50,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
     output reg [15:0] o_scaler,
     output reg [$clog2(MEM_DEPTH)-1:0] o_precap_depth,
     output reg [$clog2(DATA_WIDTH)-1:0] o_channel_select,
-    output reg o_trigger_type,
+    output reg [1:0] o_trigger_type,
     output reg o_enable,
     output o_r_ack,
     output reg o_start_read,
@@ -154,7 +154,7 @@ module FSM_Controller #(parameter DATA_WIDTH = 8, parameter PACKET_WIDTH = 16, p
                         end
                     SET_TRIG_TYPE:
                         begin
-                            o_trigger_type <= paramByte[0];
+                            o_trigger_type <= paramByte[1:0];
                         end
                     SET_ENABLE:
                         begin

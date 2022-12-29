@@ -39,7 +39,8 @@ module Trigger_Controller_tb;
 
     parameter DATA_WIDTH = 8;
     
-    reg clk, sample_clk_posedge, rst, enable, trig_type;
+    reg clk, sample_clk_posedge, rst, enable;
+    reg [1:0] trig_type;
     reg [2:0] channel_select;
     reg [11:0] count;
     
@@ -64,7 +65,7 @@ module Trigger_Controller_tb;
         sample_clk_posedge = 0;
         rst = 0;
         enable =0;
-        trig_type = 1;
+        trig_type = 3;
         channel_select = 2;
         count = 0;
         #5 rst = 1;
@@ -82,7 +83,7 @@ module Trigger_Controller_tb;
     end // End always
     
     initial
-        #550 $finish;
+        #1550 $finish;
         
         
 endmodule

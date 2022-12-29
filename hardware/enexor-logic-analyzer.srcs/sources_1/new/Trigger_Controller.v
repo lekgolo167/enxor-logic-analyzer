@@ -61,9 +61,9 @@ module Trigger_Controller #(parameter DATA_WIDTH = 8)(
     assign ne = ~i_data[i_channel_select] & r_last[i_channel_select];
 
     assign w_edge_trigger = (pe == 1'b1) || (ne == 1'b1);
-    assign w_level_trigger = (i_data[i_channel_select] == 1'b1 && i_trigger_type == LEVEL_HIGH) || (i_data[i_channel_select] == 1'b0 && i_trigger_type == LEVEL_LOW)
+    assign w_level_trigger = (i_data[i_channel_select] == 1'b1 && i_trigger_type == LEVEL_HIGH) || (i_data[i_channel_select] == 1'b0 && i_trigger_type == LEVEL_LOW);
     
-    assign o_event_pulse = (r_last != i_data) & i_sample_clk_posedge & o_triggered_state;
+    assign o_event_pulse = (r_last != i_data) & i_sample_clk_posedge;
     
     
     always @(posedge i_sys_clk) begin

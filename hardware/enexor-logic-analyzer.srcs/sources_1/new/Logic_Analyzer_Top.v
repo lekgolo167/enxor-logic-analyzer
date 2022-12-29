@@ -53,7 +53,8 @@ module Logic_Analyzer_Top #(parameter DATA_WIDTH = 8, parameter MEM_DEPTH = 8192
     wire [$clog2(DATA_WIDTH)-1:0] w_channel_select;
     wire [7:0] w_time, w_tx_byte, w_rx_byte;
     wire [15:0] w_scaler;
-    wire w_sample_clk_posedge, w_triggered_state, w_rollover, w_event, w_trig_pulse, w_rstn, w_buffer_full, w_finished_read, w_trigger_type;
+    wire [1:0] w_trigger_type;
+    wire w_sample_clk_posedge, w_triggered_state, w_rollover, w_event, w_trig_pulse, w_rstn, w_buffer_full, w_finished_read;
     wire w_r_ack, w_enable, w_start_read, w_t_rdy, w_tx_DV, w_rx_DV, w_tx_done, w_post_read, w_stop;
     
     assign o_triggered_led = w_triggered_state;
